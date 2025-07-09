@@ -2,266 +2,202 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LittleBrett Snow Level</title>
   <style>
-    html, body {
+    * {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background: #000;
-      touch-action: none;
+      box-sizing: border-box;
     }
     canvas {
       display: block;
-      background: #000;
     }
-    .controls {
-      position: fixed;
+    #controls {
+      position: absolute;
       bottom: 10px;
       width: 100%;
       display: flex;
       justify-content: space-around;
       pointer-events: none;
     }
-    .controls img {
+    .btn {
+      pointer-events: all;
+      background: none;
+      border: none;
       width: 60px;
       height: 60px;
-      pointer-events: all;
+    }
+    #startBtn {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: auto;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <div class="controls">
-    <img id="leftBtn" src="btn_left.png" />
-    <img id="rightBtn" src="btn_right.png" />
-    <img id="jumpBtn" src="btn_jump.png" />
+  <canvas id="gameCanvas"></canvas>
+  <img id="startBtn" src="btn_start.png" onclick="startGame()" />
+
+  <div id="controls">
+    <button class="btn" id="leftBtn"><img src="btn_left.png" width="60"></button>
+    <button class="btn" id="rightBtn"><img src="btn_right.png" width="60"></button>
+    <button class="btn" id="jumpBtn"><img src="btn_jump.png" width="60"></button>
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
+    const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const keys = { left: false, right: false, up: false };
-    const gravity = 0.5;
+    let gameStarted = false;
+
     const images = {};
+    const keys = {};
+    let player, platforms, coins, background;
 
-    const imageFiles = [
-      "bg_forest.png",
-      "brett_idle.png",
-      "brett_walk1.png",
-      "brett_jump.png",
-      "brett_fall.png",
-      "brett_happy.png",
-      "brett_down.png",
-      "Platform_small.png",
-      "Platform_tall.png",
-      "platform_ice.png",
-      "coin.png",
-      "btc.png",
-      "eth.png",
-      "invoke_btn.png",
-      "bull_fire.png",
-      "enemy1.png"
-    ];
+    const loadImages = (sources, callback) => {
+      let loaded = 0;
+      const total = sources.length;
+      sources.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          loaded++;
+          if (loaded === total) callback();
+        };
+        images[src] = img;
+      });
+    };
 
-    let assetsLoaded = 0;
-    for (let file of imageFiles) {
-      const img = new Image();
-      img.src = file;
-      img.onload = () => {
-        assetsLoaded++;
-        if (assetsLoaded === imageFiles.length) {
-          startGame();
-        }
-      };
-      images[file] = img;
-    }
+    const createPlatform = (x, y, type = "platform_ice.png") => ({
+      x, y, w: 100, h: 30, img: images[type],
+    });
 
-    function startGame() {
-      const player = {
+    const createCoin = (x, y, src = "coin.png") => ({
+      x, y, size: 30, collected: false, img: images[src]
+    });
+
+    const init = () => {
+      player = {
         x: 100,
-        y: canvas.height - 200,
+        y: canvas.height - 150,
         vx: 0,
         vy: 0,
-        width: 80,
-        height: 80,
+        w: 60,
+        h: 60,
         grounded: false,
-        frame: "brett_idle.png",
-        score: 0,
-        alive: true,
-        finished: false
+        img: images["brett_idle.png"]
       };
 
-      const platforms = [
-        { x: 0, y: canvas.height - 100, img: "platform_ice.png" },
-        { x: 400, y: canvas.height - 200, img: "Platform_tall.png" },
-        { x: 700, y: canvas.height - 150, img: "Platform_small.png" },
-        { x: 1100, y: canvas.height - 100, img: "platform_ice.png" }
+      platforms = [
+        createPlatform(0, canvas.height - 60),
+        createPlatform(200, canvas.height - 150, "Platform_small.png"),
+        createPlatform(400, canvas.height - 250, "Platform_tall.png"),
+        createPlatform(600, canvas.height - 180, "Platform_small.png"),
+        createPlatform(800, canvas.height - 300, "Platform_tall.png"),
       ];
 
-      const coins = [
-        { x: 420, y: canvas.height - 240, img: "coin.png", value: 50 },
-        { x: 720, y: canvas.height - 190, img: "btc.png", value: 100 },
-        { x: 1120, y: canvas.height - 140, img: "eth.png", value: 50 }
+      coins = [
+        createCoin(205, canvas.height - 180),
+        createCoin(405, canvas.height - 280, "btc.png"),
+        createCoin(805, canvas.height - 330, "eth.png")
       ];
+    };
 
-      const enemies = [
-        { x: 850, y: canvas.height - 150, img: "enemy1.png", width: 60, height: 60 }
-      ];
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(images["bg_forest.png"], 0, 0, canvas.width, canvas.height);
 
-      let bullSummoned = false;
-      let showInvokeBtn = false;
+      // Platforms
+      platforms.forEach(p => {
+        ctx.drawImage(p.img, p.x, p.y, p.w, p.h);
+      });
 
-      function draw() {
-        // Fondo
-        ctx.drawImage(images["bg_forest.png"], 0, 0, canvas.width, canvas.height);
-
-        // Plataformas
-        platforms.forEach(p => {
-          ctx.drawImage(images[p.img], p.x, p.y);
-        });
-
-        // Monedas
-        coins.forEach((c, i) => {
-          ctx.drawImage(images[c.img], c.x, c.y, 40, 40);
-          if (
-            player.x < c.x + 40 &&
-            player.x + player.width > c.x &&
-            player.y < c.y + 40 &&
-            player.y + player.height > c.y
-          ) {
-            player.score += c.value;
-            coins.splice(i, 1);
-          }
-        });
-
-        // Enemigos
-        enemies.forEach((e) => {
-          ctx.drawImage(images[e.img], e.x, e.y, e.width, e.height);
-          if (
-            player.x < e.x + e.width &&
-            player.x + player.width > e.x &&
-            player.y < e.y + e.height &&
-            player.y + player.height > e.y
-          ) {
-            player.alive = false;
-          }
-        });
-
-        // Toro
-        if (bullSummoned) {
-          bull.x += 8;
-          ctx.drawImage(images["bull_fire.png"], bull.x, bull.y, 100, 80);
+      // Coins
+      coins.forEach(c => {
+        if (!c.collected) {
+          ctx.drawImage(c.img, c.x, c.y, c.size, c.size);
         }
+      });
 
-        // Jugador
-        ctx.drawImage(images[player.frame], player.x, player.y, player.width, player.height);
+      // Player
+      ctx.drawImage(player.img, player.x, player.y, player.w, player.h);
+    };
 
-        if (player.finished) {
-          player.frame = "brett_happy.png";
-        } else if (!player.alive) {
-          player.frame = "brett_down.png";
-        }
-      }
+    const update = () => {
+      player.vy += 1; // gravity
+      player.x += player.vx;
+      player.y += player.vy;
+      player.grounded = false;
 
-      let bull = { x: -100, y: canvas.height - 120 };
-
-      function update() {
-        if (!player.alive || player.finished) return;
-
-        player.vy += gravity;
-        player.grounded = false;
-
-        player.x += player.vx;
-        player.y += player.vy;
-
-        // Colisiones con plataformas
-        platforms.forEach(p => {
-          const pw = images[p.img].width;
-          const ph = images[p.img].height;
-          if (
-            player.x < p.x + pw &&
-            player.x + player.width > p.x &&
-            player.y + player.height < p.y + ph &&
-            player.y + player.height > p.y
-          ) {
-            player.y = p.y - player.height;
-            player.vy = 0;
-            player.grounded = true;
-          }
-        });
-
-        if (player.grounded) {
+      platforms.forEach(p => {
+        if (
+          player.x + player.w > p.x &&
+          player.x < p.x + p.w &&
+          player.y + player.h > p.y &&
+          player.y + player.h < p.y + 20
+        ) {
+          player.y = p.y - player.h;
           player.vy = 0;
-          player.frame = keys.left || keys.right ? "brett_walk1.png" : "brett_idle.png";
-        } else {
-          player.frame = player.vy > 0 ? "brett_fall.png" : "brett_jump.png";
+          player.grounded = true;
         }
+      });
 
-        if (player.x > 1400) {
-          player.finished = true;
+      coins.forEach(c => {
+        if (
+          !c.collected &&
+          player.x < c.x + c.size &&
+          player.x + player.w > c.x &&
+          player.y < c.y + c.size &&
+          player.y + player.h > c.y
+        ) {
+          c.collected = true;
         }
+      });
 
-        // Invocación
-        if (player.score >= 200 && !bullSummoned) {
-          showInvokeBtn = true;
-        }
-      }
+      player.img = player.vy < 0 ? images["brett_jump.png"] :
+                   player.vy > 0 ? images["brett_fall.png"] :
+                   player.vx !== 0 ? images["brett_walk1.png"] :
+                   images["brett_idle.png"];
+    };
 
-      function gameLoop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const gameLoop = () => {
+      if (gameStarted) {
         update();
         draw();
-        requestAnimationFrame(gameLoop);
       }
+      requestAnimationFrame(gameLoop);
+    };
 
+    const startGame = () => {
+      document.getElementById("startBtn").style.display = "none";
+      gameStarted = true;
+      init();
+    };
+
+    document.getElementById("leftBtn").addEventListener("touchstart", () => player.vx = -5);
+    document.getElementById("rightBtn").addEventListener("touchstart", () => player.vx = 5);
+    document.getElementById("jumpBtn").addEventListener("touchstart", () => {
+      if (player.grounded) player.vy = -15;
+    });
+
+    document.getElementById("leftBtn").addEventListener("touchend", () => player.vx = 0);
+    document.getElementById("rightBtn").addEventListener("touchend", () => player.vx = 0);
+
+    loadImages([
+      "bg_forest.png", "brett_idle.png", "brett_jump.png", "brett_fall.png",
+      "brett_walk1.png", "btn_left.png", "btn_right.png", "btn_jump.png",
+      "btn_start.png", "coin.png", "btc.png", "eth.png",
+      "platform_ice.png", "Platform_tall.png", "Platform_small.png"
+    ], () => {
       gameLoop();
-
-      // Controles
-      document.getElementById("leftBtn").addEventListener("touchstart", () => keys.left = true);
-      document.getElementById("rightBtn").addEventListener("touchstart", () => keys.right = true);
-      document.getElementById("jumpBtn").addEventListener("touchstart", () => {
-        if (player.grounded) {
-          player.vy = -10;
-        }
-      });
-      document.addEventListener("touchend", () => {
-        keys.left = keys.right = false;
-      });
-
-      setInterval(() => {
-        player.vx = 0;
-        if (keys.left) player.vx = -5;
-        if (keys.right) player.vx = 5;
-      }, 20);
-
-      // Invocar toro
-      const invokeBtn = document.createElement("img");
-      invokeBtn.src = "invoke_btn.png";
-      invokeBtn.style.position = "fixed";
-      invokeBtn.style.top = "20px";
-      invokeBtn.style.right = "20px";
-      invokeBtn.style.width = "60px";
-      invokeBtn.style.height = "60px";
-      invokeBtn.style.zIndex = 10;
-      invokeBtn.style.display = "none";
-      document.body.appendChild(invokeBtn);
-
-      invokeBtn.addEventListener("click", () => {
-        bullSummoned = true;
-        showInvokeBtn = false;
-        invokeBtn.style.display = "none";
-      });
-
-      setInterval(() => {
-        if (showInvokeBtn && !bullSummoned) {
-          invokeBtn.style.display = "block";
-        }
-      }, 500);
-    }
+    });
   </script>
 </body>
 </html>
