@@ -1,65 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>LittleBrett Snow Level</title>
   <style>
-    html, body {
+    body {
       margin: 0;
       overflow: hidden;
-      background: black;
-      touch-action: manipulation;
+      background-color: black;
     }
     canvas {
       display: block;
+      margin: auto;
+      background-color: black;
     }
-    #controls {
-      position: fixed;
-      bottom: 10px;
+    #startButton {
+      position: absolute;
+      top: 40%;
       left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      z-index: 10;
-    }
-    .btn {
-      width: 64px;
-      height: 64px;
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
+      transform: translate(-50%, -50%);
+      background: url('btn_start.png') no-repeat center center;
+      background-size: contain;
+      width: 200px;
+      height: 80px;
       border: none;
-      outline: none;
-      background-color: transparent;
+      cursor: pointer;
     }
-    .btn-left { background-image: url('btn_left.png'); }
-    .btn-right { background-image: url('btn_right.png'); }
-    .btn-jump { background-image: url('btn_jump.png'); }
+    .control-button {
+      position: absolute;
+      bottom: 20px;
+      width: 70px;
+      height: 70px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-color: transparent;
+      border: none;
+    }
+    #leftButton {
+      left: 20px;
+      background-image: url('btn_left.png');
+    }
+    #rightButton {
+      left: 100px;
+      background-image: url('btn_right.png');
+    }
+    #jumpButton {
+      right: 20px;
+      background-image: url('btn_jump.png');
+    }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="controls">
-    <button class="btn btn-left" ontouchstart="keys.left = true" ontouchend="keys.left = false"></button>
-    <button class="btn btn-right" ontouchstart="keys.right = true" ontouchend="keys.right = false"></button>
-    <button class="btn btn-jump" ontouchstart="jump()" ontouchend="keys.up = false"></button>
-  </div>
+  <button id="startButton"></button>
+  <button class="control-button" id="leftButton"></button>
+  <button class="control-button" id="rightButton"></button>
+  <button class="control-button" id="jumpButton"></button>
+
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    const keys = { left: false, right: false, up: false };
-
+    let gameStarted = false;
     let images = {};
+    let keys = {};
+    let player = {
+      x: 100, y: 420, width: 50, height: 50,
+      vx: 0, vy: 0, jumping: false, grounded: true,
+      frame: 0, frameDelay: 0
+    };
+    const gravity = 0.5;
+    const jumpStrength = -10;
+    const platforms = [
+      { x: 0, y: 500, type: 'PlatformTall' },
+      { x: 200, y: 520, type: 'PlatformSmall' },
+      { x: 400, y: 500, type: 'PlatformTall' },
+      { x: 600, y: 520, type: 'PlatformSmall' },
+      { x: 700, y: 500, type: 'PlatformTall' }
+    ];
+    const coins = [
+      { x: 210, y: 480, type: 'coin' },
+      { x: 410, y: 460, type: 'btc' },
+      { x: 610, y: 480, type: 'eth' }
+    ];
+
+    const imageSources = {
+      background: 'bg_forest.png',
+      PlatformTall: 'PlatformTall.png',
+      PlatformSmall: 'PlatformSmall.png',
+      brett_idle: 'brett_idle.png',
+      brett_walk1: 'brett_walk1.png',
+      brett_jump: 'brett_jump.png',
+      brett_fall: 'brett_fall.png',
+      coin: 'coin.png',
+      btc: 'btc.png',
+      eth: 'eth.png'
+    };
+
     const loadImages = (sources, callback) => {
-      let loaded = 0;
-      const total = Object.keys(sources).length;
+      let loaded = 0, total = Object.keys(sources).length;
       for (let key in sources) {
         images[key] = new Image();
         images[key].src = sources[key];
@@ -70,128 +110,77 @@
       }
     };
 
-    const sources = {
-      bg: 'bg_forest.png',
-      brett: 'brett_idle.png',
-      walk: 'brett_walk1.png',
-      jump: 'brett_jump.png',
-      fall: 'brett_fall.png',
-      platform_small: 'Platform_small.png',
-      platform_tall: 'Platform_tall.png',
-      coin: 'coin.png',
-      btc: 'btc.png',
-      eth: 'eth.png'
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+
+      platforms.forEach(p => {
+        ctx.drawImage(images[p.type], p.x, p.y);
+      });
+
+      coins.forEach(c => {
+        ctx.drawImage(images[c.type], c.x, c.y);
+      });
+
+      let sprite = images.brett_idle;
+      if (!player.grounded) sprite = player.vy < 0 ? images.brett_jump : images.brett_fall;
+      else if (player.vx !== 0) sprite = images.brett_walk1;
+      ctx.drawImage(sprite, player.x, player.y);
     };
 
-    let brett = {
-      x: 100,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      width: 64,
-      height: 64,
-      onGround: false,
-      coins: 0
-    };
+    const update = () => {
+      if (keys['ArrowLeft']) player.vx = -3;
+      else if (keys['ArrowRight']) player.vx = 3;
+      else player.vx = 0;
 
-    const gravity = 1;
-    const jumpStrength = -15;
+      if (!player.grounded) player.vy += gravity;
+      player.x += player.vx;
+      player.y += player.vy;
 
-    const platforms = [
-      { x: 0, y: height - 100, img: 'platform_small' },
-      { x: 200, y: height - 140, img: 'platform_tall' },
-      { x: 500, y: height - 100, img: 'platform_small' },
-      { x: 800, y: height - 140, img: 'platform_tall' }
-    ];
-
-    const coins = [
-      { x: 210, y: height - 180, img: 'coin' },
-      { x: 510, y: height - 140, img: 'btc' },
-      { x: 810, y: height - 180, img: 'eth' }
-    ];
-
-    function jump() {
-      if (brett.onGround) {
-        brett.vy = jumpStrength;
-        brett.onGround = false;
-      }
-    }
-
-    function update() {
-      if (keys.left) brett.vx = -5;
-      else if (keys.right) brett.vx = 5;
-      else brett.vx = 0;
-
-      brett.x += brett.vx;
-      brett.vy += gravity;
-      brett.y += brett.vy;
-      brett.onGround = false;
-
-      for (let p of platforms) {
-        if (
-          brett.x < p.x + 100 &&
-          brett.x + brett.width > p.x &&
-          brett.y + brett.height < p.y + 30 &&
-          brett.y + brett.height + brett.vy >= p.y
-        ) {
-          brett.y = p.y - brett.height;
-          brett.vy = 0;
-          brett.onGround = true;
+      player.grounded = false;
+      platforms.forEach(p => {
+        if (player.x < p.x + 100 && player.x + player.width > p.x &&
+            player.y + player.height < p.y + 20 && player.y + player.height + player.vy >= p.y) {
+          player.y = p.y - player.height;
+          player.vy = 0;
+          player.jumping = false;
+          player.grounded = true;
         }
-      }
+      });
 
-      for (let c of coins) {
-        if (
-          brett.x < c.x + 32 &&
-          brett.x + brett.width > c.x &&
-          brett.y < c.y + 32 &&
-          brett.y + brett.height > c.y
-        ) {
-          brett.coins += 100;
-          c.x = -1000;
-        }
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(images.bg, 0, 0, width * 2, height);
-
-      for (let p of platforms) {
-        ctx.drawImage(images[p.img], p.x, p.y);
-      }
-
-      for (let c of coins) {
-        ctx.drawImage(images[c.img], c.x, c.y, 32, 32);
-      }
-
-      let sprite = images.brett;
-      if (!brett.onGround) sprite = brett.vy < 0 ? images.jump : images.fall;
-      else if (brett.vx !== 0) sprite = images.walk;
-
-      ctx.drawImage(sprite, brett.x, brett.y, brett.width, brett.height);
-    }
-
-    function gameLoop() {
-      update();
       draw();
-      requestAnimationFrame(gameLoop);
-    }
+      requestAnimationFrame(update);
+    };
 
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "ArrowLeft") keys.left = true;
-      if (e.code === "ArrowRight") keys.right = true;
-      if (e.code === "Space") jump();
+    document.getElementById('startButton').onclick = () => {
+      document.getElementById('startButton').style.display = 'none';
+      gameStarted = true;
+      update();
+    };
+
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (e.key === ' ' && player.grounded) {
+        player.vy = jumpStrength;
+        player.jumping = true;
+      }
     });
 
-    window.addEventListener("keyup", (e) => {
-      if (e.code === "ArrowLeft") keys.left = false;
-      if (e.code === "ArrowRight") keys.right = false;
-    });
+    window.addEventListener('keyup', e => keys[e.key] = false);
 
-    loadImages(sources, () => {
-      brett.y = height - 164; // inicio sobre el suelo
-      gameLoop();
+    document.getElementById('leftButton').ontouchstart = () => keys['ArrowLeft'] = true;
+    document.getElementById('rightButton').ontouchstart = () => keys['ArrowRight'] = true;
+    document.getElementById('jumpButton').ontouchstart = () => {
+      if (player.grounded) {
+        player.vy = jumpStrength;
+        player.jumping = true;
+      }
+    };
+    document.getElementById('leftButton').ontouchend = () => keys['ArrowLeft'] = false;
+    document.getElementById('rightButton').ontouchend = () => keys['ArrowRight'] = false;
+
+    loadImages(imageSources, () => {
+      draw();
     });
   </script>
 </body>
