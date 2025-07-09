@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LittleBrett Snow Level</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    canvas { display: block; margin: 0 auto; background: #000; }
+    #startButton, #invokeButton, .touch-btn {
+      position: absolute;
+      z-index: 2;
+      cursor: pointer;
+    }
+    #startButton {
+      left: 50%;
+      top: 40%;
+      transform: translate(-50%, -50%);
+    }
+    .touch-btn {
+      bottom: 20px;
+      width: 50px;
+      height: 50px;
+    }
+    #leftBtn { left: 20px; }
+    #rightBtn { left: 80px; }
+    #jumpBtn { right: 20px; }
+    #invokeButton {
+      top: 10px;
+      right: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <img id="startButton" src="btn_start.png" alt="Start" />
+  <img id="leftBtn" class="touch-btn" src="btn_left.png" alt="Left" />
+  <img id="rightBtn" class="touch-btn" src="btn_right.png" alt="Right" />
+  <img id="jumpBtn" class="touch-btn" src="btn_jump.png" alt="Jump" />
+  <img id="invokeButton" src="invoke_btn.png" alt="Invoke" />
+  <canvas id="gameCanvas" width="800" height="450"></canvas>  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gameRunning = false;
+
+    const images = {};
+    const imageNames = [
+      'bg_forest', 'brett_idle', 'brett_walk1', 'brett_jump', 'brett_fall',
+      'brett_happy', 'brett_down', 'coin', 'btc', 'eth',
+      'platform_ice', 'Platform_small', 'Platform_tall', 'log', 'spike',
+      'enemy1', 'bull_fire'
+    ];
+
+    let keys = { left: false, right: false, up: false };
+    let score = 0;
+    let invokes = 0;
+    let player = { x: 100, y: 300, vy: 0, width: 50, height: 50, grounded: false };
+    let gravity = 0.5;
+
+    const startButton = document.getElementById('startButton');
+    const invokeButton = document.getElementById('invokeButton');
+
+    const loadImages = (names, callback) => {
+      let loaded = 0;
+      names.forEach(name => {
+        const img = new Image();
+        img.src = `${name}.png`;
+        img.onload = () => {
+          loaded++;
+          if (loaded === names.length) callback();
+        };
+        images[name] = img;
+      });
+    };
+
+    const platforms = [
+      { x: 100, y: 400, type: 'Platform_tall' },
+      { x: 300, y: 350, type: 'Platform_small' },
+      { x: 500, y: 300, type: 'platform_ice' },
+      { x: 700, y: 270, type: 'log' }
+    ];
+
+    const coins = [
+      { x: 320, y: 300, type: 'btc' },
+      { x: 520, y: 250, type: 'eth' },
+      { x: 720, y: 220, type: 'coin' }
+    ];
+
+    const spikes = [ { x: 650, y: 400 } ];
+    const enemies = [ { x: 600, y: 385 } ];
+
+    const draw = () => {
+      ctx.drawImage(images.bg_forest, 0, 0, canvas.width, canvas.height);
+      platforms.forEach(p => ctx.drawImage(images[p.type], p.x, p.y));
+      coins.forEach(c => ctx.drawImage(images[c.type], c.x, c.y));
+      spikes.forEach(s => ctx.drawImage(images.spike, s.x, s.y));
+      enemies.forEach(e => ctx.drawImage(images.enemy1, e.x, e.y));
+
+      ctx.drawImage(images.brett_idle, player.x, player.y, player.width, player.height);
+      requestAnimationFrame(update);
+    };
+
+    const update = () => {
+      if (!gameRunning) return;
+
+      if (keys.left) player.x -= 5;
+      if (keys.right) player.x += 5;
+      if (!player.grounded) player.vy += gravity;
+
+      player.y += player.vy;
+      player.grounded = false;
+
+      platforms.forEach(p => {
+        if (player.x < p.x + 60 && player.x + player.width > p.x &&
+            player.y + player.height < p.y + 20 && player.y + player.height + player.vy >= p.y) {
+          player.y = p.y - player.height;
+          player.vy = 0;
+          player.grounded = true;
+        }
+      });
+
+      coins.forEach((c, i) => {
+        if (Math.abs(player.x - c.x) < 40 && Math.abs(player.y - c.y) < 40) {
+          coins.splice(i, 1);
+          score += 100;
+          if (score >= 200) invokeButton.style.display = 'block';
+        }
+      });
+
+      spikes.forEach(s => {
+        if (Math.abs(player.x - s.x) < 40 && Math.abs(player.y - s.y) < 40) {
+          gameRunning = false;
+          ctx.drawImage(images.brett_down, player.x, player.y, player.width, player.height);
+        }
+      });
+
+      enemies.forEach(e => {
+        if (Math.abs(player.x - e.x) < 40 && Math.abs(player.y - e.y) < 40) {
+          gameRunning = false;
+          ctx.drawImage(images.brett_down, player.x, player.y, player.width, player.height);
+        }
+      });
+
+      draw();
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.code === 'ArrowLeft') keys.left = true;
+      if (e.code === 'ArrowRight') keys.right = true;
+      if (e.code === 'Space' && player.grounded) {
+        player.vy = -10;
+        player.grounded = false;
+      }
+    });
+    document.addEventListener('keyup', e => {
+      if (e.code === 'ArrowLeft') keys.left = false;
+      if (e.code === 'ArrowRight') keys.right = false;
+    });
+
+    document.getElementById('leftBtn').ontouchstart = () => keys.left = true;
+    document.getElementById('leftBtn').ontouchend = () => keys.left = false;
+    document.getElementById('rightBtn').ontouchstart = () => keys.right = true;
+    document.getElementById('rightBtn').ontouchend = () => keys.right = false;
+    document.getElementById('jumpBtn').ontouchstart = () => {
+      if (player.grounded) {
+        player.vy = -10;
+        player.grounded = false;
+      }
+    };
+
+    startButton.onclick = () => {
+      startButton.style.display = 'none';
+      gameRunning = true;
+      update();
+    };
+
+    invokeButton.onclick = () => {
+      invokes++;
+      invokeButton.style.display = 'none';
+      // Aquí iría la animación del toro avanzando por la pantalla
+    };
+
+    loadImages(imageNames, draw);
+  </script></body>
+</html>
