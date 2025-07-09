@@ -1,156 +1,183 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LittleBrett Snow Level</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
       overflow: hidden;
-      background: black;
-      touch-action: none;
     }
     canvas {
       display: block;
-      margin: auto;
-      background: black;
-    }
-    .controls {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      display: flex;
-      justify-content: space-around;
-      pointer-events: auto;
-    }
-    .controls img {
-      width: 60px;
-      height: 60px;
-      opacity: 0.85;
+      background: url('bg_forest.png') no-repeat;
+      background-size: cover;
     }
     #startButton {
       position: absolute;
-      top: 50%;
+      top: 40%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 2;
+      z-index: 1;
+      background: none;
+      border: none;
       cursor: pointer;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 2;
+    }
+    .control-btn {
+      width: 64px;
+      height: 64px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      border: none;
+      background-color: transparent;
     }
   </style>
 </head>
 <body>
-  <img id="startButton" src="btn_start.png" alt="Start" />
-  <canvas id="gameCanvas" width="800" height="500"></canvas>
-  <div class="controls">
-    <img id="leftBtn" src="btn_left.png" />
-    <img id="jumpBtn" src="btn_jump.png" />
-    <img id="rightBtn" src="btn_right.png" />
+  <button id="startButton"><img src="btn_start.png" width="200" /></button>
+  <div id="controls" style="display: none;">
+    <button id="leftBtn" class="control-btn" style="background-image: url('btn_left.png');"></button>
+    <button id="jumpBtn" class="control-btn" style="background-image: url('btn_jump.png');"></button>
+    <button id="rightBtn" class="control-btn" style="background-image: url('btn_right.png');"></button>
   </div>
+  <canvas id="gameCanvas" width="800" height="480"></canvas>
   <script>
     const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");const gravity = 0.5;
+let score = 0;
+let showSummon = false;
 
-    const startButton = document.getElementById("startButton");
-    const leftBtn = document.getElementById("leftBtn");
-    const rightBtn = document.getElementById("rightBtn");
-    const jumpBtn = document.getElementById("jumpBtn");
+const player = {
+  x: 100,
+  y: 300,
+  width: 50,
+  height: 50,
+  vy: 0,
+  grounded: false,
+  img: new Image(),
+};
+player.img.src = "brett_idle.png";
 
-    let gameStarted = false;
+const coins = [];
+const platforms = [
+  { x: 0, y: 420, img: "bg_forest.png" }, // ground base
+  { x: 200, y: 350, img: "PlatformSmall.png" },
+  { x: 400, y: 300, img: "PlatformTall.png" },
+  { x: 600, y: 350, img: "PlatformSmall.png" },
+];
 
-    startButton.addEventListener("click", () => {
-      gameStarted = true;
-      startButton.style.display = "none";
-      requestAnimationFrame(update);
-    });
+const summonImg = new Image();
+summonImg.src = "btn_summon.png";
 
-    const bg = new Image();
-    bg.src = "bg_forest.png";
+function spawnCoins() {
+  coins.push({ x: 210, y: 320, img: "coin.png" });
+  coins.push({ x: 410, y: 270, img: "btc.png" });
+  coins.push({ x: 610, y: 320, img: "eth.png" });
+}
 
-    const player = {
-      x: 100,
-      y: 300,
-      width: 40,
-      height: 50,
-      vx: 0,
-      vy: 0,
-      onGround: false,
-    };
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const gravity = 0.8;
-    const platforms = [
-      { x: 100, y: 400, type: "Platform_small.png" },
-      { x: 300, y: 350, type: "Platform_tall.png" },
-      { x: 500, y: 300, type: "Platform_small.png" },
-    ];
+  // fondo base ya se muestra por CSS
 
-    let keys = { left: false, right: false, up: false };
+  // plataformas
+  for (let p of platforms) {
+    const img = new Image();
+    img.src = p.img;
+    ctx.drawImage(img, p.x, p.y);
+  }
 
-    leftBtn.addEventListener("touchstart", () => keys.left = true);
-    leftBtn.addEventListener("touchend", () => keys.left = false);
-    rightBtn.addEventListener("touchstart", () => keys.right = true);
-    rightBtn.addEventListener("touchend", () => keys.right = false);
-    jumpBtn.addEventListener("touchstart", () => {
-      if (player.onGround) {
-        player.vy = -12;
-        player.onGround = false;
-      }
-    });
+  // monedas
+  for (let c of coins) {
+    const coinImg = new Image();
+    coinImg.src = c.img;
+    ctx.drawImage(coinImg, c.x, c.y, 32, 32);
+  }
 
-    function drawPlayer() {
-      ctx.fillStyle = "#00f";
-      ctx.fillRect(player.x, player.y, player.width, player.height);
+  // personaje
+  ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
+
+  // botón de invocación si aplica
+  if (score >= 200 && showSummon) {
+    ctx.drawImage(summonImg, 700, 10, 64, 64);
+  }
+}
+
+function update() {
+  player.vy += gravity;
+  player.y += player.vy;
+  player.grounded = false;
+
+  for (let p of platforms) {
+    const platformTop = p.y;
+    if (
+      player.x + player.width > p.x &&
+      player.x < p.x + 100 &&
+      player.y + player.height > platformTop &&
+      player.y + player.height < platformTop + 10
+    ) {
+      player.y = platformTop - player.height;
+      player.vy = 0;
+      player.grounded = true;
     }
+  }
 
-    function drawPlatforms() {
-      platforms.forEach(p => {
-        const img = new Image();
-        img.src = p.type;
-        let imgHeight = p.type.includes('tall') ? 60 : 40;
-        let imgWidth = p.type.includes('small') ? 80 : 150;
-        ctx.drawImage(img, p.x, p.y, imgWidth, imgHeight);
-      });
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i];
+    if (
+      player.x < c.x + 32 &&
+      player.x + player.width > c.x &&
+      player.y < c.y + 32 &&
+      player.y + player.height > c.y
+    ) {
+      coins.splice(i, 1);
+      score += 100;
+      if (score >= 200) showSummon = true;
     }
+  }
+}
 
-    function update() {
-      if (!gameStarted) return;
+let keys = {};
+document.addEventListener("keydown", (e) => (keys[e.key] = true));
+document.addEventListener("keyup", (e) => (keys[e.key] = false));
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+document.getElementById("leftBtn").addEventListener("touchstart", () => (keys["ArrowLeft"] = true));
+document.getElementById("leftBtn").addEventListener("touchend", () => (keys["ArrowLeft"] = false));
+document.getElementById("rightBtn").addEventListener("touchstart", () => (keys["ArrowRight"] = true));
+document.getElementById("rightBtn").addEventListener("touchend", () => (keys["ArrowRight"] = false));
+document.getElementById("jumpBtn").addEventListener("touchstart", () => {
+  if (player.grounded) {
+    player.vy = -10;
+    player.grounded = false;
+  }
+});
 
-      player.vx = 0;
-      if (keys.left) player.vx = -5;
-      if (keys.right) player.vx = 5;
+function loop() {
+  update();
 
-      player.vy += gravity;
-      player.x += player.vx;
-      player.y += player.vy;
+  if (keys["ArrowLeft"]) player.x -= 4;
+  if (keys["ArrowRight"]) player.x += 4;
 
-      player.onGround = false;
-      platforms.forEach(p => {
-        let px = p.x, py = p.y;
-        let ph = p.type.includes('tall') ? 60 : 40;
-        let pw = p.type.includes('small') ? 80 : 150;
+  draw();
+  requestAnimationFrame(loop);
+}
 
-        if (
-          player.x + player.width > px &&
-          player.x < px + pw &&
-          player.y + player.height > py &&
-          player.y + player.height < py + ph &&
-          player.vy >= 0
-        ) {
-          player.y = py - player.height;
-          player.vy = 0;
-          player.onGround = true;
-        }
-      });
+document.getElementById("startButton").addEventListener("click", () => {
+  document.getElementById("startButton").style.display = "none";
+  document.getElementById("controls").style.display = "flex";
+  spawnCoins();
+  loop();
+});
 
-      drawPlatforms();
-      drawPlayer();
-
-      requestAnimationFrame(update);
-    }
   </script>
 </body>
 </html>
