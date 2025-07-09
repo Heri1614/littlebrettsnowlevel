@@ -1,196 +1,126 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LittleBrett Snow Level</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; background: #000; }
-    canvas { display: block; margin: 0 auto; background: #000; }
-    #controls {
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+    #startButton {
       position: absolute;
-      bottom: 20px;
-      width: 100%;
-      text-align: center;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
     }
-    .btn {
-      background: none;
-      border: none;
-      margin: 0 10px;
-      width: 60px;
-    }
-    .btn img { width: 100%; }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <div id="controls">
-    <button class="btn" id="leftBtn"><img src="btn_left.png" /></button>
-    <button class="btn" id="rightBtn"><img src="btn_right.png" /></button>
-    <button class="btn" id="jumpBtn"><img src="btn_jump.png" /></button>
-  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;let score = 0;
-let gravity = 0.5;
-let gameSpeed = 3;
-let keys = { left: false, right: false, up: false };
+    let bg;
+    let player;
+    let platforms = [];
+    let startGame = false;
 
-// Load Images
-const images = {
-  bg: "bg_forest.png",
-  brett_idle: "brett_idle.png",
-  brett_walk: "brett_walk1.png",
-  brett_jump: "brett_jump.png",
-  brett_fall: "brett_fall.png",
-  platform_small: "Platform_small.png",
-  platform_tall: "Platform_tall.png",
-  coin: "coin.png",
-  scoreFont: "30px Arial"
-};
+    function preload() {
+      bg = loadImage("bg_forest.png");
 
-const assets = {};
-let loadedAssets = 0;
-const totalAssets = Object.keys(images).length;
+      player = {
+        img: {
+          idle: loadImage("brett_idle.png"),
+          walk: loadImage("brett_walk1.png"),
+          jump: loadImage("brett_jump.png"),
+          fall: loadImage("brett_fall.png"),
+          down: loadImage("brett_down.png"),
+          happy: loadImage("brett_happy.png")
+        },
+        x: 100,
+        y: 0,
+        w: 50,
+        h: 50,
+        vx: 0,
+        vy: 0,
+        grounded: false
+      };
 
-for (let key in images) {
-  const img = new Image();
-  img.src = images[key];
-  img.onload = () => {
-    loadedAssets++;
-    if (loadedAssets === totalAssets) startGame();
-  };
-  assets[key] = img;
-}
-
-// Character
-class Player {
-  constructor() {
-    this.x = 100;
-    this.y = canvas.height - 150;
-    this.width = 60;
-    this.height = 60;
-    this.velY = 0;
-    this.onGround = true;
-  }
-
-  update() {
-    if (keys.left) this.x -= 5;
-    if (keys.right) this.x += 5;
-
-    this.y += this.velY;
-    this.velY += gravity;
-
-    if (this.y + this.height > canvas.height - 50) {
-      this.y = canvas.height - this.height - 50;
-      this.velY = 0;
-      this.onGround = true;
-    } else {
-      this.onGround = false;
+      platforms.push({ img: loadImage("Platform_small.png"), x: 50, y: 300 });
+      platforms.push({ img: loadImage("Platform_tall.png"), x: 200, y: 220 });
+      platforms.push({ img: loadImage("Platform_small.png"), x: 350, y: 150 });
     }
-  }
 
-  draw() {
-    let sprite = assets.brett_idle;
-    if (!this.onGround && this.velY < 0) sprite = assets.brett_jump;
-    else if (!this.onGround && this.velY > 0) sprite = assets.brett_fall;
-    else if (keys.left || keys.right) sprite = assets.brett_walk;
-    ctx.drawImage(sprite, this.x, this.y, this.width, this.height);
-  }
-}
-
-class Platform {
-  constructor(x, y, type) {
-    this.x = x;
-    this.y = y;
-    this.width = 100;
-    this.height = 20;
-    this.image = type === "tall" ? assets.platform_tall : assets.platform_small;
-  }
-  draw() {
-    ctx.drawImage(this.image, this.x, this.y);
-  }
-}
-
-class Coin {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.width = 30;
-    this.height = 30;
-  }
-  draw() {
-    ctx.drawImage(assets.coin, this.x, this.y, this.width, this.height);
-  }
-}
-
-const player = new Player();
-const platforms = [
-  new Platform(0, canvas.height - 50, "tall"),
-  new Platform(200, canvas.height - 150, "small"),
-  new Platform(400, canvas.height - 220, "tall"),
-  new Platform(600, canvas.height - 100, "small")
-];
-const coins = [
-  new Coin(210, canvas.height - 190),
-  new Coin(610, canvas.height - 140)
-];
-
-function startGame() {
-  animate();
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
-
-  platforms.forEach(p => p.draw());
-  coins.forEach((coin, i) => {
-    coin.draw();
-    if (
-      player.x < coin.x + coin.width &&
-      player.x + player.width > coin.x &&
-      player.y < coin.y + coin.height &&
-      player.y + player.height > coin.y
-    ) {
-      score += 100;
-      coins.splice(i, 1);
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      player.y = height - player.h - 100;
     }
-  });
 
-  player.update();
-  player.draw();
+    function draw() {
+      background(0);
 
-  ctx.fillStyle = "white";
-  ctx.font = images.scoreFont;
-  ctx.fillText("Score: " + score, 20, 40);
+      if (bg) {
+        image(bg, 0, 0, width, height);
+      }
 
-  requestAnimationFrame(animate);
-}
+      if (!startGame) return;
 
-// Controls
-document.getElementById("leftBtn").addEventListener("touchstart", () => (keys.left = true));
-document.getElementById("leftBtn").addEventListener("touchend", () => (keys.left = false));
-document.getElementById("rightBtn").addEventListener("touchstart", () => (keys.right = true));
-document.getElementById("rightBtn").addEventListener("touchend", () => (keys.right = false));
-document.getElementById("jumpBtn").addEventListener("touchstart", () => {
-  if (player.onGround) {
-    player.velY = -10;
-  }
-});
+      // Movimiento
+      player.vy += 0.8; // gravedad
+      player.y += player.vy;
+      player.x += player.vx;
 
-window.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") keys.left = true;
-  if (e.key === "ArrowRight") keys.right = true;
-  if (e.key === " ") if (player.onGround) player.velY = -10;
-});
-window.addEventListener("keyup", (e) => {
-  if (e.key === "ArrowLeft") keys.left = false;
-  if (e.key === "ArrowRight") keys.right = false;
-});
+      // Límite de pantalla
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > width) player.x = width - player.w;
 
+      player.grounded = false;
+
+      for (let plat of platforms) {
+        image(plat.img, plat.x, plat.y);
+
+        if (
+          player.x + player.w > plat.x &&
+          player.x < plat.x + plat.img.width &&
+          player.y + player.h > plat.y &&
+          player.y + player.h < plat.y + 20 &&
+          player.vy >= 0
+        ) {
+          player.y = plat.y - player.h;
+          player.vy = 0;
+          player.grounded = true;
+        }
+      }
+
+      let sprite = player.img.idle;
+      if (!player.grounded) sprite = player.vy < 0 ? player.img.jump : player.img.fall;
+      else if (player.vx !== 0) sprite = player.img.walk;
+
+      image(sprite, player.x, player.y, player.w, player.h);
+    }
+
+    function keyPressed() {
+      if (keyCode === LEFT_ARROW) player.vx = -5;
+      if (keyCode === RIGHT_ARROW) player.vx = 5;
+      if (keyCode === UP_ARROW && player.grounded) {
+        player.vy = -15;
+      }
+    }
+
+    function keyReleased() {
+      if (keyCode === LEFT_ARROW || keyCode === RIGHT_ARROW) {
+        player.vx = 0;
+      }
+    }
+
+    function mousePressed() {
+      if (!startGame) startGame = true;
+    }
   </script>
 </body>
 </html>
