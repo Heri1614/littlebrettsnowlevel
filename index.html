@@ -1,187 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LittleBrett Snow Level</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
-      background-color: black;
+      background: black;
+      touch-action: none;
     }
     canvas {
       display: block;
       margin: auto;
-      background-color: black;
+      background: black;
+    }
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      pointer-events: auto;
+    }
+    .controls img {
+      width: 60px;
+      height: 60px;
+      opacity: 0.85;
     }
     #startButton {
       position: absolute;
-      top: 40%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: url('btn_start.png') no-repeat center center;
-      background-size: contain;
-      width: 200px;
-      height: 80px;
-      border: none;
+      z-index: 2;
       cursor: pointer;
-    }
-    .control-button {
-      position: absolute;
-      bottom: 20px;
-      width: 70px;
-      height: 70px;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-color: transparent;
-      border: none;
-    }
-    #leftButton {
-      left: 20px;
-      background-image: url('btn_left.png');
-    }
-    #rightButton {
-      left: 100px;
-      background-image: url('btn_right.png');
-    }
-    #jumpButton {
-      right: 20px;
-      background-image: url('btn_jump.png');
     }
   </style>
 </head>
 <body>
-  <button id="startButton"></button>
-  <button class="control-button" id="leftButton"></button>
-  <button class="control-button" id="rightButton"></button>
-  <button class="control-button" id="jumpButton"></button>
-
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
-
+  <img id="startButton" src="btn_start.png" alt="Start" />
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+  <div class="controls">
+    <img id="leftBtn" src="btn_left.png" />
+    <img id="jumpBtn" src="btn_jump.png" />
+    <img id="rightBtn" src="btn_right.png" />
+  </div>
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const startButton = document.getElementById("startButton");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const jumpBtn = document.getElementById("jumpBtn");
 
     let gameStarted = false;
-    let images = {};
-    let keys = {};
-    let player = {
-      x: 100, y: 420, width: 50, height: 50,
-      vx: 0, vy: 0, jumping: false, grounded: true,
-      frame: 0, frameDelay: 0
+
+    startButton.addEventListener("click", () => {
+      gameStarted = true;
+      startButton.style.display = "none";
+      requestAnimationFrame(update);
+    });
+
+    const bg = new Image();
+    bg.src = "bg_forest.png";
+
+    const player = {
+      x: 100,
+      y: 300,
+      width: 40,
+      height: 50,
+      vx: 0,
+      vy: 0,
+      onGround: false,
     };
-    const gravity = 0.5;
-    const jumpStrength = -10;
+
+    const gravity = 0.8;
     const platforms = [
-      { x: 0, y: 500, type: 'PlatformTall' },
-      { x: 200, y: 520, type: 'PlatformSmall' },
-      { x: 400, y: 500, type: 'PlatformTall' },
-      { x: 600, y: 520, type: 'PlatformSmall' },
-      { x: 700, y: 500, type: 'PlatformTall' }
-    ];
-    const coins = [
-      { x: 210, y: 480, type: 'coin' },
-      { x: 410, y: 460, type: 'btc' },
-      { x: 610, y: 480, type: 'eth' }
+      { x: 100, y: 400, type: "Platform_small.png" },
+      { x: 300, y: 350, type: "Platform_tall.png" },
+      { x: 500, y: 300, type: "Platform_small.png" },
     ];
 
-    const imageSources = {
-      background: 'bg_forest.png',
-      PlatformTall: 'PlatformTall.png',
-      PlatformSmall: 'PlatformSmall.png',
-      brett_idle: 'brett_idle.png',
-      brett_walk1: 'brett_walk1.png',
-      brett_jump: 'brett_jump.png',
-      brett_fall: 'brett_fall.png',
-      coin: 'coin.png',
-      btc: 'btc.png',
-      eth: 'eth.png'
-    };
+    let keys = { left: false, right: false, up: false };
 
-    const loadImages = (sources, callback) => {
-      let loaded = 0, total = Object.keys(sources).length;
-      for (let key in sources) {
-        images[key] = new Image();
-        images[key].src = sources[key];
-        images[key].onload = () => {
-          loaded++;
-          if (loaded === total) callback();
-        };
+    leftBtn.addEventListener("touchstart", () => keys.left = true);
+    leftBtn.addEventListener("touchend", () => keys.left = false);
+    rightBtn.addEventListener("touchstart", () => keys.right = true);
+    rightBtn.addEventListener("touchend", () => keys.right = false);
+    jumpBtn.addEventListener("touchstart", () => {
+      if (player.onGround) {
+        player.vy = -12;
+        player.onGround = false;
       }
-    };
+    });
 
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+    function drawPlayer() {
+      ctx.fillStyle = "#00f";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
 
+    function drawPlatforms() {
       platforms.forEach(p => {
-        ctx.drawImage(images[p.type], p.x, p.y);
+        const img = new Image();
+        img.src = p.type;
+        let imgHeight = p.type.includes('tall') ? 60 : 40;
+        let imgWidth = p.type.includes('small') ? 80 : 150;
+        ctx.drawImage(img, p.x, p.y, imgWidth, imgHeight);
       });
+    }
 
-      coins.forEach(c => {
-        ctx.drawImage(images[c.type], c.x, c.y);
-      });
+    function update() {
+      if (!gameStarted) return;
 
-      let sprite = images.brett_idle;
-      if (!player.grounded) sprite = player.vy < 0 ? images.brett_jump : images.brett_fall;
-      else if (player.vx !== 0) sprite = images.brett_walk1;
-      ctx.drawImage(sprite, player.x, player.y);
-    };
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
-    const update = () => {
-      if (keys['ArrowLeft']) player.vx = -3;
-      else if (keys['ArrowRight']) player.vx = 3;
-      else player.vx = 0;
+      player.vx = 0;
+      if (keys.left) player.vx = -5;
+      if (keys.right) player.vx = 5;
 
-      if (!player.grounded) player.vy += gravity;
+      player.vy += gravity;
       player.x += player.vx;
       player.y += player.vy;
 
-      player.grounded = false;
+      player.onGround = false;
       platforms.forEach(p => {
-        if (player.x < p.x + 100 && player.x + player.width > p.x &&
-            player.y + player.height < p.y + 20 && player.y + player.height + player.vy >= p.y) {
-          player.y = p.y - player.height;
+        let px = p.x, py = p.y;
+        let ph = p.type.includes('tall') ? 60 : 40;
+        let pw = p.type.includes('small') ? 80 : 150;
+
+        if (
+          player.x + player.width > px &&
+          player.x < px + pw &&
+          player.y + player.height > py &&
+          player.y + player.height < py + ph &&
+          player.vy >= 0
+        ) {
+          player.y = py - player.height;
           player.vy = 0;
-          player.jumping = false;
-          player.grounded = true;
+          player.onGround = true;
         }
       });
 
-      draw();
+      drawPlatforms();
+      drawPlayer();
+
       requestAnimationFrame(update);
-    };
-
-    document.getElementById('startButton').onclick = () => {
-      document.getElementById('startButton').style.display = 'none';
-      gameStarted = true;
-      update();
-    };
-
-    window.addEventListener('keydown', e => {
-      keys[e.key] = true;
-      if (e.key === ' ' && player.grounded) {
-        player.vy = jumpStrength;
-        player.jumping = true;
-      }
-    });
-
-    window.addEventListener('keyup', e => keys[e.key] = false);
-
-    document.getElementById('leftButton').ontouchstart = () => keys['ArrowLeft'] = true;
-    document.getElementById('rightButton').ontouchstart = () => keys['ArrowRight'] = true;
-    document.getElementById('jumpButton').ontouchstart = () => {
-      if (player.grounded) {
-        player.vy = jumpStrength;
-        player.jumping = true;
-      }
-    };
-    document.getElementById('leftButton').ontouchend = () => keys['ArrowLeft'] = false;
-    document.getElementById('rightButton').ontouchend = () => keys['ArrowRight'] = false;
-
-    loadImages(imageSources, () => {
-      draw();
-    });
+    }
   </script>
 </body>
 </html>
