@@ -4,131 +4,162 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LittleBrett Snow Level</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-    }
-    canvas {
-      display: block;
-      background: #000;
-    }
-    .controls {
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { overflow: hidden; height: 100%; }
+    canvas { display: block; background: url('bg_forest.png') repeat-x; background-size: cover; }
+    #mobile-controls {
       position: absolute;
       bottom: 20px;
       width: 100%;
       display: flex;
       justify-content: center;
       gap: 20px;
-      z-index: 10;
+      z-index: 2;
     }
-    .controls img {
+    #mobile-controls img {
       width: 60px;
       height: 60px;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="1024" height="576"></canvas>  <div class="controls">
-    <img id="leftBtn" src="btn_left.png" alt="Left" />
-    <img id="rightBtn" src="btn_right.png" alt="Right" />
-    <img id="jumpBtn" src="btn_jump.png" alt="Jump" />
+  <canvas id="gameCanvas"></canvas>
+  <div id="mobile-controls">
+    <img src="btn_left.png" id="btnLeft">
+    <img src="btn_right.png" id="btnRight">
+    <img src="btn_jump.png" id="btnJump">
   </div>  <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    const bg = new Image();
-    bg.src = 'bg_forest.png';
+    const gravity = 1.5;
+    let score = 0;
+    let showInvoke = false;
+
+    const background = new Image();
+    background.src = 'bg_forest.png';
 
     const brett = new Image();
     brett.src = 'brett_idle.png';
 
-    const platform = new Image();
-    platform.src = 'Platform_small.png';
+    const coinImg = new Image();
+    coinImg.src = 'coin.png';
 
-    let player = {
+    const platformTall = new Image();
+    platformTall.src = 'Platform_tall.png';
+
+    const platformSmall = new Image();
+    platformSmall.src = 'Platform_small.png';
+
+    const groundY = canvas.height - 150;
+
+    const brettPlayer = {
       x: 100,
-      y: 400,
+      y: groundY - 80,
       width: 60,
-      height: 60,
-      vy: 0,
+      height: 80,
+      dy: 0,
+      dx: 0,
       jumping: false
     };
 
-    const gravity = 1;
+    const keys = { left: false, right: false, up: false };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'ArrowLeft') keys.left = true;
+      if (e.code === 'ArrowRight') keys.right = true;
+      if (e.code === 'Space' && !brettPlayer.jumping) {
+        brettPlayer.dy = -20;
+        brettPlayer.jumping = true;
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowLeft') keys.left = false;
+      if (e.code === 'ArrowRight') keys.right = false;
+    });
+
+    document.getElementById('btnLeft').ontouchstart = () => keys.left = true;
+    document.getElementById('btnLeft').ontouchend = () => keys.left = false;
+    document.getElementById('btnRight').ontouchstart = () => keys.right = true;
+    document.getElementById('btnRight').ontouchend = () => keys.right = false;
+    document.getElementById('btnJump').ontouchstart = () => {
+      if (!brettPlayer.jumping) {
+        brettPlayer.dy = -20;
+        brettPlayer.jumping = true;
+      }
+    };
+
     const platforms = [
-      { x: 100, y: 460, width: 120, height: 20 }
+      { x: 200, y: groundY - 120, img: platformSmall },
+      { x: 400, y: groundY - 200, img: platformTall },
+      { x: 700, y: groundY - 120, img: platformSmall },
+      { x: 1000, y: groundY - 180, img: platformTall }
     ];
 
-    let keys = {};
-    let scrollOffset = 0;
+    const coins = [
+      { x: 210, y: groundY - 150 },
+      { x: 420, y: groundY - 230 },
+      { x: 710, y: groundY - 150 },
+      { x: 1020, y: groundY - 210 }
+    ];
 
-    function drawBackground() {
-      ctx.drawImage(bg, -scrollOffset, 0, bg.width, canvas.height);
-    }
+    let scrollX = 0;
 
-    function drawPlatforms() {
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(background, -scrollX, 0, canvas.width, canvas.height);
+
+      brettPlayer.x += (keys.right - keys.left) * 5;
+      scrollX = brettPlayer.x - 100;
+
+      brettPlayer.dy += gravity;
+      brettPlayer.y += brettPlayer.dy;
+      if (brettPlayer.y + brettPlayer.height >= groundY) {
+        brettPlayer.y = groundY - brettPlayer.height;
+        brettPlayer.dy = 0;
+        brettPlayer.jumping = false;
+      }
+
+      ctx.drawImage(brett, brettPlayer.x - scrollX, brettPlayer.y, brettPlayer.width, brettPlayer.height);
+
       platforms.forEach(p => {
-        ctx.drawImage(platform, p.x - scrollOffset, p.y, p.width, p.height);
-      });
-    }
-
-    function drawPlayer() {
-      ctx.drawImage(brett, player.x, player.y, player.width, player.height);
-    }
-
-    function update() {
-      if (keys['ArrowRight']) player.x += 5;
-      if (keys['ArrowLeft']) player.x -= 5;
-
-      player.vy += gravity;
-      player.y += player.vy;
-
-      platforms.forEach(p => {
+        ctx.drawImage(p.img, p.x - scrollX, p.y);
         if (
-          player.y + player.height >= p.y &&
-          player.y + player.height <= p.y + p.height &&
-          player.x + player.width >= p.x - scrollOffset &&
-          player.x <= p.x + p.width - scrollOffset &&
-          player.vy > 0
+          brettPlayer.x + brettPlayer.width > p.x &&
+          brettPlayer.x < p.x + 100 &&
+          brettPlayer.y + brettPlayer.height > p.y &&
+          brettPlayer.y + brettPlayer.height < p.y + 10 &&
+          brettPlayer.dy >= 0
         ) {
-          player.vy = 0;
-          player.jumping = false;
-          player.y = p.y - player.height;
+          brettPlayer.y = p.y - brettPlayer.height;
+          brettPlayer.dy = 0;
+          brettPlayer.jumping = false;
         }
       });
 
-      if (player.x > canvas.width / 2) scrollOffset = player.x - canvas.width / 2;
+      coins.forEach((c, i) => {
+        ctx.drawImage(coinImg, c.x - scrollX, c.y, 30, 30);
+        if (
+          brettPlayer.x < c.x + 30 &&
+          brettPlayer.x + brettPlayer.width > c.x &&
+          brettPlayer.y < c.y + 30 &&
+          brettPlayer.y + brettPlayer.height > c.y
+        ) {
+          coins.splice(i, 1);
+          score += 50;
+          if (score >= 200) showInvoke = true;
+        }
+      });
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBackground();
-      drawPlatforms();
-      drawPlayer();
-      requestAnimationFrame(update);
+      ctx.fillStyle = 'white';
+      ctx.font = '20px Arial';
+      ctx.fillText('Score: ' + score, 20, 30);
+
+      requestAnimationFrame(draw);
     }
 
-    document.addEventListener('keydown', e => {
-      keys[e.key] = true;
-      if (e.key === ' ' && !player.jumping) {
-        player.vy = -15;
-        player.jumping = true;
-      }
-    });
-    document.addEventListener('keyup', e => keys[e.key] = false);
-
-    // Mobile button support
-    document.getElementById('leftBtn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
-    document.getElementById('leftBtn').addEventListener('touchend', () => keys['ArrowLeft'] = false);
-    document.getElementById('rightBtn').addEventListener('touchstart', () => keys['ArrowRight'] = true);
-    document.getElementById('rightBtn').addEventListener('touchend', () => keys['ArrowRight'] = false);
-    document.getElementById('jumpBtn').addEventListener('touchstart', () => {
-      if (!player.jumping) {
-        player.vy = -15;
-        player.jumping = true;
-      }
-    });
-
-    bg.onload = () => update();
+    draw();
   </script></body>
 </html>
