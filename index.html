@@ -1,102 +1,110 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LittleBrett Game Start</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-    }html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  font-family: sans-serif;
-  background-color: #000;
-}
+    }
 
-#gameContainer {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      background-color: #000;
+    }
 
-#startScreen {
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 10;
-}
+    #gameContainer {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
 
-#startButton {
-  width: 200px;
-  height: auto;
-  cursor: pointer;
-}
+    #startScreen {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 10;
+    }
 
-#gameScreen {
-  display: none;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
+    #startButton {
+      width: 200px;
+      height: auto;
+      cursor: pointer;
+    }
 
-#bgForest {
-  width: 100%;
-  height: 33vh;
-  object-fit: cover;
-  display: block;
-}
+    #gameScreen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
 
-.platform {
-  position: absolute;
-  z-index: 5;
-}
+    #bgForest {
+      width: 100%;
+      height: 33vh;
+      object-fit: cover;
+      display: block;
+    }
 
-#platformTall {
-  width: 70px;
-  bottom: 10vh;
-  left: 20%;
-}
+    .platform {
+      position: absolute;
+      width: auto;
+      height: 60px;
+    }
 
-#platformSmall {
-  width: 60px;
-  bottom: 12vh;
-  left: 60%;
-}
+    #platformTall {
+      left: 20%;
+      bottom: 67vh; /* toca justo debajo del fondo */
+    }
 
-@media (min-width: 768px) {
-  #bgForest {
-    height: 60vh;
-  }
+    #platformSmall {
+      left: 60%;
+      bottom: 67vh;
+    }
 
-  #startButton {
-    width: 250px;
-  }
-}
+    @media (min-width: 768px) {
+      #bgForest {
+        height: 60vh;
+      }
 
+      #platformTall,
+      #platformSmall {
+        bottom: 40vh;
+      }
+
+      #startButton {
+        width: 250px;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="gameContainer">
     <div id="startScreen">
       <img id="startButton" src="btn_start.png" alt="Play Game" />
-    </div><div id="gameScreen">
-  <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
-  <img id="platformTall" class="platform" src="Platform_tall.png" alt="Platform Tall" />
-  <img id="platformSmall" class="platform" src="Platform_small.png" alt="Platform Small" />
-</div>
+    </div>
 
-  </div>  <script>
+    <div id="gameScreen">
+      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
+      <img id="platformTall" class="platform" src="Platform_tall.png" alt="Tall Platform" />
+      <img id="platformSmall" class="platform" src="Platform_small.png" alt="Small Platform" />
+    </div>
+  </div>
+
+  <script>
     const startButton = document.getElementById("startButton");
     const startScreen = document.getElementById("startScreen");
     const gameScreen = document.getElementById("gameScreen");
@@ -105,5 +113,6 @@
       startScreen.style.display = "none";
       gameScreen.style.display = "block";
     });
-  </script></body>
+  </script>
+</body>
 </html>
