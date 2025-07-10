@@ -53,17 +53,52 @@
 
     #bgForest {
       width: 100%;
-      height: 33vh; /* Un tercio de la pantalla */
+      height: 33vh;
       object-fit: cover;
       display: block;
+    }
+
+    #littleBrett {
+      position: absolute;
+      bottom: calc(67vh + 10px); /* Justo sobre el fondo */
+      left: 40%;
+      width: 60px;
+      height: auto;
+      z-index: 2;
+    }
+
+    .controlButton {
+      position: absolute;
+      width: 60px;
+      height: auto;
+      bottom: calc(67vh - 10px); /* Justo debajo del fondo */
+      z-index: 3;
+      cursor: pointer;
+    }
+
+    #leftButton {
+      left: 20px;
+    }
+
+    #rightButton {
+      right: 20px;
     }
 
     @media (min-width: 768px) {
       #startButton {
         width: 250px;
       }
+
       #bgForest {
         height: 33vh;
+      }
+
+      #littleBrett {
+        width: 70px;
+      }
+
+      .controlButton {
+        width: 70px;
       }
     }
   </style>
@@ -76,6 +111,9 @@
 
     <div id="gameScreen">
       <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
+      <img id="littleBrett" src="brett_idle.png" alt="LittleBrett" />
+      <img id="leftButton" class="controlButton" src="btn_left.png" alt="Left" />
+      <img id="rightButton" class="controlButton" src="btn_right.png" alt="Right" />
     </div>
   </div>
 
@@ -83,6 +121,26 @@
     const startButton = document.getElementById("startButton");
     const startScreen = document.getElementById("startScreen");
     const gameScreen = document.getElementById("gameScreen");
+
+    const littleBrett = document.getElementById("littleBrett");
+    const leftButton = document.getElementById("leftButton");
+    const rightButton = document.getElementById("rightButton");
+
+    let positionX = 40; // porcentaje inicial
+
+    function updateBrettPosition() {
+      littleBrett.style.left = `${positionX}%`;
+    }
+
+    leftButton.addEventListener("click", () => {
+      positionX = Math.max(0, positionX - 2);
+      updateBrettPosition();
+    });
+
+    rightButton.addEventListener("click", () => {
+      positionX = Math.min(92, positionX + 2);
+      updateBrettPosition();
+    });
 
     startButton.addEventListener("click", () => {
       startScreen.style.display = "none";
