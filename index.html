@@ -1,130 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LittleBrett Game Start</title>
+  <title>LittleBrett Snow Level</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: sans-serif;
-      background-color: #000;
+      background: black;
     }
-
-    #gameContainer {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    #startScreen {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
+    canvas {
+      display: block;
       position: absolute;
       top: 0;
       left: 0;
-      z-index: 10;
-    }
-
-    #startButton {
-      width: 200px;
-      height: auto;
-      cursor: pointer;
-    }
-
-    #gameScreen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    #bgForest {
-      width: 100%;
-      height: 33vh;
-      object-fit: cover;
-      display: block;
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      z-index: 1;
-    }
-
-    @media (min-width: 768px) {
-      #bgForest {
-        height: 60vh;
-      }
-
-      #startButton {
-        width: 250px;
-      }
-    }
-
-    @media (max-width: 767px) {
-      #bgForest {
-        height: 33vh;
-      }
-    }
-
-    #brett {
-      position: absolute;
-      bottom: 33vh;
-      left: 100px;
-      width: 80px;
-      z-index: 2;
-      transition: left 0.1s linear;
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="startScreen">
-      <img id="startButton" src="btn_start.png" alt="Play Game" />
-    </div>
-
-    <div id="gameScreen">
-      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
-      <img id="brett" src="brett_idle.png" alt="LittleBrett" />
-    </div>
-  </div>
-
+  <canvas id="game"></canvas>
   <script>
-    const startButton = document.getElementById("startButton");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const brett = document.getElementById("brett");
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;// Cargar imagen del fondo (ocupará 1/3 superior de la pantalla)
+const bg = new Image();
+bg.src = 'bg_forest.png';
 
-    let brettX = 100;
+// Cargar imagen del personaje
+const brett = new Image();
+brett.src = 'brett_idle.png';
 
-    startButton.addEventListener("click", () => {
-      startScreen.style.display = "none";
-      gameScreen.style.display = "block";
-    });
+// Posición inicial de LittleBrett dentro del fondo
+let brettX = 100;
+let brettY = height / 3 - 90; // fondo ocupa 1/3 desde arriba
+let brettSpeed = 5;
+let keys = {};
 
-    document.addEventListener("keydown", (e) => {
-      const step = 10;
-      if (e.key === "ArrowRight") {
-        brettX += step;
-        brett.style.left = brettX + "px";
-      } else if (e.key === "ArrowLeft") {
-        brettX -= step;
-        if (brettX < 0) brettX = 0;
-        brett.style.left = brettX + "px";
-      }
-    });
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+
+  // Fondo ajustado al tercio superior
+  const bgHeight = height / 3;
+  ctx.drawImage(bg, 0, 0, width, bgHeight);
+
+  // Límites del movimiento solo dentro del fondo
+  if (keys['ArrowLeft'] && brettX > 0) brettX -= brettSpeed;
+  if (keys['ArrowRight'] && brettX + 60 < width) brettX += brettSpeed;
+
+  // Dibujar personaje
+  ctx.drawImage(brett, brettX, brettY, 60, 60);
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+
   </script>
 </body>
 </html>
