@@ -1,174 +1,467 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LittleBrett Snow Level</title>
+  <title>LittleBrett - Nivel 1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { overflow: hidden; height: 100%; background: #000; }
-    canvas { display: block; background: #000; }
-    #controls { position: fixed; bottom: 10px; width: 100%; display: flex; justify-content: space-around; }
-    #controls img { width: 60px; height: auto; }
+    /* Estilos generales */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none; /* Evita scroll táctil durante el juego */
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 8000px;  /* Ancho del mundo para acomodar 40 plataformas */
+      height: 100%;
+      background: url('bg_forest.png') repeat-x center center;
+      background-size: cover;  /* Ajustar imagen de fondo para cubrir la altura */
+    }
+    /* Capas de elementos del juego */
+    .platform {
+      position: absolute;
+      z-index: 1;
+    }
+    #player, .enemy, .coin, .bull {
+      position: absolute;
+      z-index: 2;
+    }
+    /* Elementos de interfaz (UI) */
+    .ui {
+      position: absolute;
+      z-index: 5;
+    }
+    #score {
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      background: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    #invokeBtn {
+      top: 10px;
+      right: 10px;
+      /* width: 60px; Opcional: ajustar tamaño del botón de invocación */
+    }
+    .control {
+      bottom: 20px;
+      opacity: 0.8;  /* Controles semi-translúcidos para ver el juego debajo */
+    }
+    #btn_left  { left: 20px; }
+    #btn_right { left: 90px; }
+    #btn_jump  { right: 20px; }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="controls">
-    <img id="btnLeft" src="btn_left.png" />
-    <img id="btnJump" src="btn_jump.png" />
-    <img id="btnRight" src="btn_right.png" />
+  <!-- Contenedor principal del juego -->
+  <div id="game-container">
+    <!-- Mundo del juego (escenario) -->
+    <div id="world">
+      <!-- Personaje del jugador: LittleBrett -->
+      <img id="player" src="brett_idle.png" alt="LittleBrett" draggable="false" />
+      <!-- Las plataformas, monedas y el enemigo se agregarán dinámicamente mediante JavaScript -->
+    </div>
+    <!-- Interfaz de usuario: puntuación y controles -->
+    <div id="score" class="ui">Puntos: 0</div>
+    <img id="invokeBtn" class="ui" src="invoke_btn.png" alt="Invocar toro" style="display:none;" draggable="false" />
+    <img id="btn_left"  class="ui control" src="btn_left.png"  alt="Izquierda" draggable="false" />
+    <img id="btn_right" class="ui control" src="btn_right.png" alt="Derecha"   draggable="false" />
+    <img id="btn_jump"  class="ui control" src="btn_jump.png"  alt="Saltar"    draggable="false" />
   </div>
+
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;const images = {};
-const loadImage = (name, src) => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      images[name] = img;
-      resolve();
+    // Variables del juego y estado inicial del jugador
+    const platforms = [];   // coordenadas de plataformas
+    const coins = [];       // referencias a monedas en escena
+    let player = { x: 0, y: 0, width: 0, height: 0, vx: 0, vy: 0, onPlatform: false };
+    let score = 0;
+    const scoreDisplay = document.getElementById('score');
+    const invokeBtn = document.getElementById('invokeBtn');
+    let bullActive = false;
+    let bull = null;
+    let enemy = null;
+    const keys = { left: false, right: false, up: false };
+
+    // Constantes de movimiento y física
+    const speed = 5;        // velocidad horizontal del jugador (px por frame a 60 FPS)
+    const gravity = 0.8;    // gravedad (incremento de velocidad vertical por frame)
+    const jumpVelocity = 15; // velocidad inicial del salto del jugador
+
+    // Parámetros para distribuir las plataformas
+    const baseGapX = 150;  // separación horizontal base entre plataformas
+    const varGapX  = 50;   // variación aleatoria en la separación horizontal
+    const varGapY  = 80;   // variación aleatoria en la posición vertical
+
+    // Función para inicializar el nivel (crear plataformas, monedas y enemigo)
+    function initLevel() {
+      const worldElem = document.getElementById('world');
+      const platformImg = 'platform_ice.png';
+      // Posición inicial de la primera plataforma
+      let px = 50;
+      let py = window.innerHeight * 0.7;
+      const minY = 50;
+      const maxY = window.innerHeight - 150;
+      if(py < minY) py = minY;
+      if(py > maxY) py = maxY;
+      // Crear 40 plataformas en secuencia
+      for (let i = 0; i < 40; i++) {
+        const plat = document.createElement('img');
+        plat.src = platformImg;
+        plat.className = 'platform';
+        plat.style.left = px + 'px';
+        plat.style.top = py + 'px';
+        plat.draggable = false;
+        worldElem.appendChild(plat);
+        // Obtener dimensiones (si la imagen ya cargó) o usar aproximado
+        const platWidth = plat.width || 60;
+        const platHeight = plat.height || 20;
+        platforms.push({ x: px, y: py, width: platWidth, height: platHeight });
+        // Calcular posición de la siguiente plataforma
+        const dx = baseGapX + (Math.random() * 2 * varGapX - varGapX);
+        const dy = (Math.random() * 2 * varGapY - varGapY);
+        px += Math.max(100, dx);   // asegurar al menos 100px de distancia horizontal
+        py -= dy;                 // ajustar altura: dy positivo sube, negativo baja
+        // Limitar dentro de los límites verticales con pequeño margen
+        if(py < minY) py = minY + 40;
+        if(py > maxY) py = maxY - 40;
+      }
+      // Posicionar al jugador sobre la primera plataforma
+      const playerElem = document.getElementById('player');
+      player.width = playerElem.offsetWidth;
+      player.height = playerElem.offsetHeight;
+      player.x = platforms[0].x;
+      player.y = platforms[0].y - player.height;
+      player.vy = 0;
+      player.onPlatform = true;
+      updatePlayerPosition();
+      // Crear un enemigo en una plataforma avanzada (por ejemplo, la #25)
+      const enemyIndex = 25;
+      const enemyPlat = platforms[enemyIndex];
+      enemy = document.createElement('img');
+      enemy.src = 'enemy1.png';
+      enemy.className = 'enemy';
+      enemy.style.left = (enemyPlat.x + 20) + 'px';
+      enemy.style.top = (enemyPlat.y - 40) + 'px';
+      enemy.draggable = false;
+      worldElem.appendChild(enemy);
+      // Generar monedas en algunas plataformas
+      const coinTypes = [
+        { src: 'coin.png', value: 10 },
+        { src: 'btc.png',  value: 50 },
+        { src: 'eth.png',  value: 100 }
+      ];
+      for (let i = 0; i < platforms.length; i++) {
+        if(Math.random() < 0.3) {  // ~30% de probabilidad de moneda en esta plataforma
+          const type = coinTypes[Math.floor(Math.random() * coinTypes.length)];
+          const coinElem = document.createElement('img');
+          coinElem.src = type.src;
+          coinElem.className = 'coin';
+          // Posicionar la moneda centrada sobre la plataforma
+          coinElem.style.left = (platforms[i].x + 10) + 'px';
+          coinElem.style.top  = (platforms[i].y - 30) + 'px';
+          coinElem.draggable = false;
+          worldElem.appendChild(coinElem);
+          // Registrar moneda para control de colisiones
+          coins.push({ element: coinElem, x: platforms[i].x + 10, y: platforms[i].y - 30, value: type.value });
+        }
+      }
+    }
+
+    // Actualizar la posición del jugador en el DOM según player.x, player.y
+    function updatePlayerPosition() {
+      const playerElem = document.getElementById('player');
+      playerElem.style.left = player.x + 'px';
+      playerElem.style.top  = player.y + 'px';
+    }
+
+    // Controles de teclado (escritorio)
+    document.addEventListener('keydown', function(e) {
+      if(e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        keys.left = true;
+        e.preventDefault();
+      }
+      if(e.code === 'ArrowRight' || e.code === 'KeyD') {
+        keys.right = true;
+        e.preventDefault();
+      }
+      if(e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') {
+        if(player.onPlatform && !keys.up) {
+          // Iniciar salto
+          player.vy = -jumpVelocity;
+          player.onPlatform = false;
+          document.getElementById('player').src = 'brett_jump.png';
+          keys.up = true;
+        }
+        e.preventDefault();
+      }
+    });
+    document.addEventListener('keyup', function(e) {
+      if(e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        keys.left = false;
+      }
+      if(e.code === 'ArrowRight' || e.code === 'KeyD') {
+        keys.right = false;
+      }
+      if(e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') {
+        keys.up = false;
+      }
+    });
+
+    // Controles táctiles (móvil) y de ratón (clic en botones) 
+    const btnLeft = document.getElementById('btn_left');
+    const btnRight = document.getElementById('btn_right');
+    const btnJump = document.getElementById('btn_jump');
+    // Táctil
+    btnLeft.addEventListener('touchstart', e => { keys.left = true; e.preventDefault(); });
+    btnLeft.addEventListener('touchend',   e => { keys.left = false; e.preventDefault(); });
+    btnRight.addEventListener('touchstart', e => { keys.right = true; e.preventDefault(); });
+    btnRight.addEventListener('touchend',   e => { keys.right = false; e.preventDefault(); });
+    btnJump.addEventListener('touchstart', e => {
+      if(player.onPlatform) {
+        player.vy = -jumpVelocity;
+        player.onPlatform = false;
+        document.getElementById('player').src = 'brett_jump.png';
+      }
+      e.preventDefault();
+    });
+    // Ratón
+    btnLeft.addEventListener('mousedown', e => { keys.left = true; e.preventDefault(); });
+    btnLeft.addEventListener('mouseup',   e => { keys.left = false; e.preventDefault(); });
+    btnRight.addEventListener('mousedown', e => { keys.right = true; e.preventDefault(); });
+    btnRight.addEventListener('mouseup',   e => { keys.right = false; e.preventDefault(); });
+    btnJump.addEventListener('mousedown', e => {
+      if(player.onPlatform) {
+        player.vy = -jumpVelocity;
+        player.onPlatform = false;
+        document.getElementById('player').src = 'brett_jump.png';
+      }
+      e.preventDefault();
+    });
+
+    // Evento del botón de invocación del toro
+    invokeBtn.addEventListener('click', () => {
+      if(score >= 200 && !bullActive) {
+        invokeBull();
+      }
+    });
+    invokeBtn.addEventListener('touchstart', e => {
+      if(score >= 200 && !bullActive) {
+        invokeBull();
+      }
+      e.preventDefault();
+    });
+
+    // Función para invocar el toro de fuego
+    function invokeBull() {
+      bullActive = true;
+      // Crear elemento toro y añadirlo al mundo
+      bull = document.createElement('img');
+      bull.src = 'bull_fire.png';
+      bull.className = 'bull';
+      // Iniciar justo a la izquierda de la vista actual de la cámara
+      bull.style.left = (cameraX - 100) + 'px';
+      // Posicionar toro cerca del "suelo" (parte inferior de la pantalla)
+      const bullHeight = 60;
+      bull.style.top = (window.innerHeight - bullHeight - 20) + 'px';
+      bull.draggable = false;
+      document.getElementById('world').appendChild(bull);
+      // Ocultar el botón de invocar tras usarlo (uso único)
+      invokeBtn.style.display = 'none';
+    }
+
+    // Variables de cámara para el scroll lateral
+    let cameraX = 0;
+    // Función para actualizar la posición de la cámara según el jugador
+    function updateCamera() {
+      const viewportWidth = window.innerWidth;
+      // Calcular desplazamiento: centrar jugador en pantalla
+      cameraX = player.x - viewportWidth / 2;
+      if(cameraX < 0) cameraX = 0;
+      // Límite derecho: no desplazar más allá del final del mundo
+      const maxCameraX = (platforms[platforms.length - 1].x + 500) - viewportWidth;
+      if(cameraX > maxCameraX) cameraX = maxCameraX;
+      // Aplicar transformación de desplazamiento al mundo
+      document.getElementById('world').style.transform = `translateX(${-cameraX}px)`;
+    }
+
+    // Bucle principal del juego: física, lógica y renderizado
+    let lastTime = performance.now();
+    function gameLoop() {
+      const now = performance.now();
+      let dt = (now - lastTime) / (1000/60);
+      if(dt > 3) dt = 3;  // evitar saltos excesivos en caso de lag
+      lastTime = now;
+
+      // Movimiento horizontal del jugador
+      if(keys.left && !keys.right) {
+        player.x -= speed * dt;
+        // Voltear sprite a la izquierda
+        document.getElementById('player').style.transform = 'scaleX(-1)';
+        // Sprite de caminar si está sobre una plataforma
+        if(player.onPlatform) {
+          document.getElementById('player').src = 'brett_walk1.png';
+        }
+      }
+      if(keys.right && !keys.left) {
+        player.x += speed * dt;
+        // Orientar sprite a la derecha
+        document.getElementById('player').style.transform = 'scaleX(1)';
+        if(player.onPlatform) {
+          document.getElementById('player').src = 'brett_walk1.png';
+        }
+      }
+      if(!keys.left && !keys.right && player.onPlatform) {
+        // Sin movimiento horizontal: sprite en idle (parado)
+        document.getElementById('player').src = 'brett_idle.png';
+      }
+
+      // Movimiento vertical (gravedad)
+      if(!player.onPlatform) {
+        player.vy += gravity * dt;
+        // Actualizar sprite según dirección vertical
+        if(player.vy > 0) {
+          document.getElementById('player').src = 'brett_fall.png';
+        }
+      }
+      player.y += player.vy * dt;
+
+      // Colisión con el suelo (parte inferior de la pantalla)
+      const groundY = window.innerHeight - player.height;
+      if(player.y > groundY) {
+        player.y = groundY;
+        player.vy = 0;
+        if(!player.onPlatform) {
+          player.onPlatform = true;
+          document.getElementById('player').src = 'brett_idle.png';
+        }
+      }
+
+      // Colisión con la parte superior de plataformas (aterrizar sobre ellas)
+      if(player.vy >= 0) {  // solo verificar al caer o estar quieto
+        for(let plat of platforms) {
+          // Verificar solapamiento horizontal con la plataforma
+          if(player.x + player.width > plat.x && player.x < plat.x + plat.width) {
+            // Verificar que el jugador esté cayendo sobre la plataforma
+            if(player.y + player.height >= plat.y && player.y + player.height <= plat.y + plat.height + player.vy * dt) {
+              // Posicionar al jugador justo encima de la plataforma
+              player.y = plat.y - player.height;
+              player.vy = 0;
+              player.onPlatform = true;
+              document.getElementById('player').src = 'brett_idle.png';
+            }
+          }
+        }
+      }
+
+      // Colisión de la cabeza con la parte inferior de una plataforma (techo) al saltar
+      if(player.vy < 0) {
+        for(let plat of platforms) {
+          if(player.x + player.width > plat.x && player.x < plat.x + plat.width) {
+            if(player.y < plat.y + plat.height && player.y > plat.y) {
+              // Golpe cabeza: detener salto y ajustar posición debajo de la plataforma
+              player.vy = 0;
+              player.y = plat.y + plat.height;
+            }
+          }
+        }
+      }
+
+      // Actualizar posición del jugador en el DOM
+      updatePlayerPosition();
+
+      // Recolección de monedas (verificar colisión jugador-moneda)
+      for(let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        // Comprobar superposición aproximada entre el centro del jugador y la moneda
+        if(Math.abs((player.x + player.width/2) - (c.x + 8)) < 20 &&
+           Math.abs((player.y + player.height/2) - (c.y + 8)) < 20) {
+          // Recoger la moneda
+          score += c.value;
+          scoreDisplay.textContent = 'Puntos: ' + score;
+          // Eliminar moneda del DOM y del array
+          c.element.parentNode.removeChild(c.element);
+          coins.splice(i, 1);
+          // Si alcanzó 200 puntos, mostrar botón de invocar toro (si no se ha usado ya)
+          if(score >= 200 && !bullActive) {
+            invokeBtn.style.display = 'block';
+          }
+        }
+      }
+
+      // Colisión del jugador con el enemigo
+      if(enemy) {
+        const playerElem = document.getElementById('player');
+        const enemyRect = enemy.getBoundingClientRect();
+        const playerRect = playerElem.getBoundingClientRect();
+        if(playerRect.left < enemyRect.right && playerRect.right > enemyRect.left &&
+           playerRect.top < enemyRect.bottom && playerRect.bottom > enemyRect.top) {
+          // El jugador toca al enemigo: reiniciar posición (inicio del nivel)
+          player.x = platforms[0].x;
+          player.y = platforms[0].y - player.height;
+          player.vy = 0;
+          player.onPlatform = true;
+          document.getElementById('player').src = 'brett_idle.png';
+          // (Se podría manejar pérdida de vida o game over aquí)
+        }
+      }
+
+      // Movimiento del toro de fuego (si ha sido invocado)
+      if(bullActive && bull) {
+        let bullX = parseFloat(bull.style.left);
+        bullX += 10 * dt;  // desplazar toro hacia la derecha
+        bull.style.left = bullX + 'px';
+        // Verificar colisión toro con enemigo
+        if(enemy) {
+          const bullRect = bull.getBoundingClientRect();
+          const enemyRect = enemy.getBoundingClientRect();
+          if(bullRect.left < enemyRect.right && bullRect.right > enemyRect.left &&
+             bullRect.top < enemyRect.bottom && bullRect.bottom > enemyRect.top) {
+            // Toro golpea al enemigo: eliminar enemigo
+            enemy.parentNode.removeChild(enemy);
+            enemy = null;
+            // Cambiar sprite del jugador a "feliz"
+            document.getElementById('player').src = 'brett_happy.png';
+            // Volver al sprite idle después de 1 segundo (si está en plataforma)
+            setTimeout(() => {
+              if(player.onPlatform) {
+                document.getElementById('player').src = 'brett_idle.png';
+              }
+            }, 1000);
+          }
+        }
+        // Eliminar toro si sale completamente de la pantalla (fuera del mundo de juego)
+        if(bullX > cameraX + window.innerWidth + 200) {
+          bull.parentNode.removeChild(bull);
+          bull = null;
+          bullActive = false;
+        }
+      }
+
+      // Actualizar cámara para seguir al jugador (scroll lateral)
+      updateCamera();
+      // Solicitar el siguiente frame de animación
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Iniciar el juego una vez que el documento y recursos están cargados
+    window.onload = () => {
+      initLevel();
+      requestAnimationFrame(gameLoop);
     };
-  });
-};
-
-const loadAllImages = async () => {
-  const assets = [
-    ["bg", "bg_forest.png"],
-    ["platform", "platform_ice.png"],
-    ["brett", "brett_idle.png"],
-    ["brett_jump", "brett_jump.png"],
-    ["brett_fall", "brett_fall.png"],
-    ["brett_happy", "brett_happy.png"],
-    ["brett_down", "brett_down.png"],
-    ["enemy", "enemy1.png"]
-  ];
-  await Promise.all(assets.map(([name, src]) => loadImage(name, src)));
-};
-
-const keys = { left: false, right: false, jump: false };
-
-document.getElementById("btnLeft").ontouchstart = () => keys.left = true;
-document.getElementById("btnLeft").ontouchend = () => keys.left = false;
-document.getElementById("btnRight").ontouchstart = () => keys.right = true;
-document.getElementById("btnRight").ontouchend = () => keys.right = false;
-document.getElementById("btnJump").ontouchstart = () => keys.jump = true;
-document.getElementById("btnJump").ontouchend = () => keys.jump = false;
-
-const player = {
-  x: 50,
-  y: 0,
-  width: 50,
-  height: 50,
-  dx: 0,
-  dy: 0,
-  grounded: false,
-  sprite: "brett"
-};
-
-const gravity = 0.5;
-const jumpPower = -12;
-const speed = 5;
-
-const platforms = [];
-for (let i = 0; i < 40; i++) {
-  const x = i * 150;
-  const y = canvas.height - 100 - Math.sin(i * 0.5) * 50;
-  platforms.push({ x, y, width: 100, height: 20 });
-}
-
-const enemies = [
-  { x: 500, y: canvas.height - 160, width: 50, height: 50 }
-];
-
-let gameOver = false;
-let gameWin = false;
-
-const update = () => {
-  if (gameOver || gameWin) return;
-  player.dx = 0;
-  if (keys.left) player.dx = -speed;
-  if (keys.right) player.dx = speed;
-  if (keys.jump && player.grounded) {
-    player.dy = jumpPower;
-    player.grounded = false;
-  }
-
-  player.dy += gravity;
-  player.x += player.dx;
-  player.y += player.dy;
-
-  // Collision con plataformas
-  player.grounded = false;
-  for (const p of platforms) {
-    if (
-      player.x < p.x + p.width &&
-      player.x + player.width > p.x &&
-      player.y + player.height > p.y &&
-      player.y + player.height < p.y + p.height + 10 &&
-      player.dy >= 0
-    ) {
-      player.y = p.y - player.height;
-      player.dy = 0;
-      player.grounded = true;
-    }
-  }
-
-  // Enemigo
-  for (const e of enemies) {
-    if (
-      player.x < e.x + e.width &&
-      player.x + player.width > e.x &&
-      player.y < e.y + e.height &&
-      player.y + player.height > e.y
-    ) {
-      gameOver = true;
-    }
-  }
-
-  // Final del juego
-  if (player.x > platforms[platforms.length - 1].x) {
-    gameWin = true;
-  }
-};
-
-const draw = () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
-
-  const offsetX = player.x - 100;
-
-  platforms.forEach(p => {
-    ctx.drawImage(images.platform, p.x - offsetX, p.y, p.width, p.height);
-  });
-
-  enemies.forEach(e => {
-    ctx.drawImage(images.enemy, e.x - offsetX, e.y, e.width, e.height);
-  });
-
-  if (gameOver) {
-    ctx.drawImage(images.brett_down, canvas.width / 2 - 100, canvas.height / 2 - 100);
-    return;
-  }
-  if (gameWin) {
-    ctx.drawImage(images.brett_happy, canvas.width / 2 - 100, canvas.height / 2 - 100);
-    return;
-  }
-
-  const sprite = player.dy < 0 ? "brett_jump" : player.dy > 2 ? "brett_fall" : "brett";
-  ctx.drawImage(images[sprite], player.x - offsetX, player.y, player.width, player.height);
-};
-
-const loop = () => {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-};
-
-loadAllImages().then(() => loop());
-
   </script>
 </body>
 </html>
