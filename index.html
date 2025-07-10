@@ -4,178 +4,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LittleBrett Snow Level</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
     }
     canvas {
       display: block;
-      background: url('bg_forest.png') no-repeat;
-      background-size: cover;
     }
     #startButton {
       position: absolute;
-      top: 40%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 1;
-      background: none;
-      border: none;
+      z-index: 10;
       cursor: pointer;
     }
     #controls {
       position: absolute;
       bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
+      width: 100%;
       display: flex;
-      gap: 10px;
-      z-index: 2;
+      justify-content: space-around;
+      z-index: 10;
     }
-    .control-btn {
-      width: 64px;
-      height: 64px;
-      background-size: contain;
-      background-repeat: no-repeat;
-      border: none;
-      background-color: transparent;
+    #controls img {
+      width: 60px;
+      height: 60px;
     }
   </style>
 </head>
 <body>
-  <button id="startButton"><img src="btn_start.png" width="200" /></button>
-  <div id="controls" style="display: none;">
-    <button id="leftBtn" class="control-btn" style="background-image: url('btn_left.png');"></button>
-    <button id="jumpBtn" class="control-btn" style="background-image: url('btn_jump.png');"></button>
-    <button id="rightBtn" class="control-btn" style="background-image: url('btn_right.png');"></button>
+  <img id="startButton" src="btn_start.png" onclick="startGame()" />
+  <div id="controls" style="display:none">
+    <img src="btn_left.png" id="leftBtn" />
+    <img src="btn_jump.png" id="jumpBtn" />
+    <img src="btn_right.png" id="rightBtn" />
   </div>
-  <canvas id="gameCanvas" width="800" height="480"></canvas>
+  <canvas id="gameCanvas"></canvas>
   <script>
     const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");const gravity = 0.5;
-let score = 0;
-let showSummon = false;
-
-const player = {
-  x: 100,
-  y: 300,
-  width: 50,
-  height: 50,
-  vy: 0,
-  grounded: false,
-  img: new Image(),
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;const keys = {
+  left: false,
+  right: false,
+  jump: false
 };
-player.img.src = "brett_idle.png";
 
-const coins = [];
-const platforms = [
-  { x: 0, y: 420, img: "bg_forest.png" }, // ground base
-  { x: 200, y: 350, img: "PlatformSmall.png" },
-  { x: 400, y: 300, img: "PlatformTall.png" },
-  { x: 600, y: 350, img: "PlatformSmall.png" },
+const images = {};
+const imageFiles = [
+  "bg_forest.png", "platform_ice.png", "platform_small.png", "platform_tall.png",
+  "brett_idle.png", "brett_walk1.png", "brett_jump.png", "brett_fall.png",
+  "brett_happy.png", "brett_down.png",
+  "coin.png", "btc.png", "eth.png"
 ];
 
-const summonImg = new Image();
-summonImg.src = "btn_summon.png";
+let player, platforms, coins;
+let scrollX = 0;
 
-function spawnCoins() {
-  coins.push({ x: 210, y: 320, img: "coin.png" });
-  coins.push({ x: 410, y: 270, img: "btc.png" });
-  coins.push({ x: 610, y: 320, img: "eth.png" });
-}
-
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // fondo base ya se muestra por CSS
-
-  // plataformas
-  for (let p of platforms) {
+function loadImages(files, callback) {
+  let loaded = 0;
+  files.forEach((file) => {
     const img = new Image();
-    img.src = p.img;
-    ctx.drawImage(img, p.x, p.y);
-  }
-
-  // monedas
-  for (let c of coins) {
-    const coinImg = new Image();
-    coinImg.src = c.img;
-    ctx.drawImage(coinImg, c.x, c.y, 32, 32);
-  }
-
-  // personaje
-  ctx.drawImage(player.img, player.x, player.y, player.width, player.height);
-
-  // botón de invocación si aplica
-  if (score >= 200 && showSummon) {
-    ctx.drawImage(summonImg, 700, 10, 64, 64);
-  }
+    img.src = file;
+    img.onload = () => {
+      images[file] = img;
+      loaded++;
+      if (loaded === files.length) callback();
+    };
+  });
 }
 
-function update() {
-  player.vy += gravity;
-  player.y += player.vy;
-  player.grounded = false;
+class Player {
+  constructor() {
+    this.x = 100;
+    this.y = canvas.height - 200;
+    this.width = 60;
+    this.height = 60;
+    this.vx = 0;
+    this.vy = 0;
+    this.onGround = false;
+  }
 
-  for (let p of platforms) {
-    const platformTop = p.y;
-    if (
-      player.x + player.width > p.x &&
-      player.x < p.x + 100 &&
-      player.y + player.height > platformTop &&
-      player.y + player.height < platformTop + 10
-    ) {
-      player.y = platformTop - player.height;
-      player.vy = 0;
-      player.grounded = true;
+  draw() {
+    ctx.drawImage(images["brett_idle.png"], this.x - scrollX, this.y, this.width, this.height);
+  }
+
+  update() {
+    this.vx = 0;
+    if (keys.left) this.vx = -5;
+    if (keys.right) this.vx = 5;
+    if (keys.jump && this.onGround) {
+      this.vy = -15;
+      this.onGround = false;
     }
-  }
 
-  for (let i = coins.length - 1; i >= 0; i--) {
-    const c = coins[i];
-    if (
-      player.x < c.x + 32 &&
-      player.x + player.width > c.x &&
-      player.y < c.y + 32 &&
-      player.y + player.height > c.y
-    ) {
-      coins.splice(i, 1);
-      score += 100;
-      if (score >= 200) showSummon = true;
+    this.vy += 0.8; // Gravity
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Ground/platform collision
+    this.onGround = false;
+    for (let platform of platforms) {
+      if (
+        this.x + this.width > platform.x &&
+        this.x < platform.x + platform.width &&
+        this.y + this.height > platform.y &&
+        this.y + this.height < platform.y + platform.height &&
+        this.vy >= 0
+      ) {
+        this.y = platform.y - this.height;
+        this.vy = 0;
+        this.onGround = true;
+      }
     }
+
+    scrollX = this.x - 100;
   }
 }
 
-let keys = {};
-document.addEventListener("keydown", (e) => (keys[e.key] = true));
-document.addEventListener("keyup", (e) => (keys[e.key] = false));
-
-document.getElementById("leftBtn").addEventListener("touchstart", () => (keys["ArrowLeft"] = true));
-document.getElementById("leftBtn").addEventListener("touchend", () => (keys["ArrowLeft"] = false));
-document.getElementById("rightBtn").addEventListener("touchstart", () => (keys["ArrowRight"] = true));
-document.getElementById("rightBtn").addEventListener("touchend", () => (keys["ArrowRight"] = false));
-document.getElementById("jumpBtn").addEventListener("touchstart", () => {
-  if (player.grounded) {
-    player.vy = -10;
-    player.grounded = false;
+class Platform {
+  constructor(x, y, type) {
+    this.x = x;
+    this.y = y;
+    this.width = 100;
+    this.height = 20;
+    this.image = images[type];
   }
-});
 
-function loop() {
-  update();
-
-  if (keys["ArrowLeft"]) player.x -= 4;
-  if (keys["ArrowRight"]) player.x += 4;
-
-  draw();
-  requestAnimationFrame(loop);
+  draw() {
+    ctx.drawImage(this.image, this.x - scrollX, this.y, this.width, this.height);
+  }
 }
 
-document.getElementById("startButton").addEventListener("click", () => {
+class Coin {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.width = 30;
+    this.height = 30;
+    this.image = images["coin.png"];
+  }
+
+  draw() {
+    ctx.drawImage(this.image, this.x - scrollX, this.y, this.width, this.height);
+  }
+}
+
+function startGame() {
   document.getElementById("startButton").style.display = "none";
   document.getElementById("controls").style.display = "flex";
-  spawnCoins();
-  loop();
+  player = new Player();
+  platforms = [
+    new Platform(0, canvas.height - 60, "platform_ice.png"),
+    new Platform(250, canvas.height - 150, "platform_small.png"),
+    new Platform(500, canvas.height - 250, "platform_tall.png")
+  ];
+  coins = [new Coin(520, canvas.height - 280)];
+  animate();
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(images["bg_forest.png"], 0 - scrollX * 0.5, 0, canvas.width, canvas.height);
+  for (let p of platforms) p.draw();
+  for (let c of coins) c.draw();
+  player.update();
+  player.draw();
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") keys.left = true;
+  if (e.key === "ArrowRight") keys.right = true;
+  if (e.key === " " || e.key === "ArrowUp") keys.jump = true;
+});
+
+window.addEventListener("keyup", (e) => {
+  if (e.key === "ArrowLeft") keys.left = false;
+  if (e.key === "ArrowRight") keys.right = false;
+  if (e.key === " " || e.key === "ArrowUp") keys.jump = false;
+});
+
+document.getElementById("leftBtn").addEventListener("touchstart", () => (keys.left = true));
+document.getElementById("leftBtn").addEventListener("touchend", () => (keys.left = false));
+document.getElementById("rightBtn").addEventListener("touchstart", () => (keys.right = true));
+document.getElementById("rightBtn").addEventListener("touchend", () => (keys.right = false));
+document.getElementById("jumpBtn").addEventListener("touchstart", () => (keys.jump = true));
+document.getElementById("jumpBtn").addEventListener("touchend", () => (keys.jump = false));
+
+loadImages(imageFiles, () => {
+  console.log("All assets loaded");
 });
 
   </script>
