@@ -3,87 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LittleBrett Game Start</title>
+  <title>LittleBrett Snow Level</title>
   <style>
-    * {
+    body, html {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
       overflow: hidden;
-      font-family: sans-serif;
-    }
-    #game-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
       background: black;
     }
-    #start-btn {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 2;
-      width: 150px;
-      height: auto;
-      cursor: pointer;
-    }
-    #background {
+
+    #gameCanvas {
+      display: none;
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 33%;
-      object-fit: cover;
-      z-index: 0;
     }
-    .platform {
+
+    #startBtn {
       position: absolute;
-      bottom: 0;
-      z-index: 1;
-    }
-    #platform-small {
-      left: 20%;
-      width: 120px;
-    }
-    #platform-tall {
-      left: 60%;
-      width: 120px;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div id="game-container">
-    <img src="btn_start.png" id="start-btn" />
-    <img src="bg_forest.png" id="background" />
-  </div>
+
+  <!-- Botón de inicio -->
+  <img id="startBtn" src="btn_start.png" alt="Start Game" />
+
+  <!-- Canvas del juego -->
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
   <script>
-    const startBtn = document.getElementById("start-btn");
-    const container = document.getElementById("game-container");
+    const startBtn = document.getElementById('startBtn');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-    startBtn.addEventListener("click", () => {
-      startBtn.style.display = "none";
+    const bgImg = new Image();
+    bgImg.src = 'bg_forest.png';
 
-      // Añadir plataformas
-      const platformSmall = document.createElement("img");
-      platformSmall.src = "Platform_small.png";
-      platformSmall.classList.add("platform");
-      platformSmall.id = "platform-small";
-      platformSmall.style.bottom = "50px";
+    const platformSmall = new Image();
+    platformSmall.src = 'Platform_small.png';
 
-      const platformTall = document.createElement("img");
-      platformTall.src = "Platform_tall.png";
-      platformTall.classList.add("platform");
-      platformTall.id = "platform-tall";
-      platformTall.style.bottom = "100px";
+    const platformTall = new Image();
+    platformTall.src = 'Platform_tall.png';
 
-      container.appendChild(platformSmall);
-      container.appendChild(platformTall);
+    let imagesLoaded = 0;
+
+    const checkAllLoaded = () => {
+      imagesLoaded++;
+      if (imagesLoaded === 3) drawScene();
+    };
+
+    bgImg.onload = checkAllLoaded;
+    platformSmall.onload = checkAllLoaded;
+    platformTall.onload = checkAllLoaded;
+
+    function drawScene() {
+      // Limpia el fondo
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Dibuja el fondo ocupando 1/3 de la pantalla
+      const bgHeight = canvas.height / 3;
+      ctx.drawImage(bgImg, 0, 0, canvas.width, bgHeight);
+
+      // Coloca las plataformas justo sobre el borde de la nieve
+      const baseY = bgHeight - 20;
+
+      // Plataforma pequeña a la izquierda
+      ctx.drawImage(platformSmall, 150, baseY, 100, 40);
+
+      // Plataforma alta a la derecha
+      ctx.drawImage(platformTall, 500, baseY - 60, 100, 100);
+    }
+
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = 'none';
+      canvas.style.display = 'block';
     });
   </script>
 </body>
