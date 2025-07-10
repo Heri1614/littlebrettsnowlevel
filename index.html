@@ -1,180 +1,108 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LittleBrett Snow Level</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    canvas { display: block; background: #000; }
-    #startScreen, #touchControls {
-      position: absolute;
-      z-index: 10;
-    }
+    canvas { display: block; background: #000; margin: 0 auto; }
     #startScreen {
-      width: 100vw;
-      height: 100vh;
-      background-image: url("bg_forest.png");
-      background-size: cover;
-      background-position: center;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('bg_forest.png') no-repeat center center/cover;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      z-index: 2;
     }
     #startBtn {
-      background: none;
-      border: none;
+      background: rgba(0, 255, 255, 0.5);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 18px;
+      border: 2px solid white;
       cursor: pointer;
     }
     #touchControls {
+      position: absolute;
       bottom: 10px;
       width: 100%;
-      display: flex;
+      display: none;
       justify-content: space-between;
       padding: 0 20px;
+      z-index: 3;
     }
-    .btn {
-      width: 50px;
-      height: 50px;
-      opacity: 0.8;
+    #touchControls img {
+      width: 60px;
+      height: auto;
     }
   </style>
 </head>
 <body>
   <div id="startScreen">
-    <button id="startBtn">
-      <img src="btn_start.png" alt="Start" width="120" />
-    </button>
+    <button id="startBtn">PLAY GAME</button>
   </div>
-  <canvas id="gameCanvas" width="800" height="480"></canvas>
-  <div id="touchControls" style="display: none;">
-    <img src="btn_left.png" class="btn" id="btnLeft">
-    <img src="btn_jump.png" class="btn" id="btnJump">
-    <img src="btn_right.png" class="btn" id="btnRight">
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="touchControls">
+    <img id="btnLeft" src="btn_left.png" alt="Left" />
+    <img id="btnJump" src="btn_jump.png" alt="Jump" />
+    <img id="btnRight" src="btn_right.png" alt="Right" />
   </div>
-
   <script>
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let startScreen = document.getElementById('startScreen');
-    let touchControls = document.getElementById('touchControls');
+    const ctx = canvas.getContext('2d');const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const touchControls = document.getElementById('touchControls');
 
-    const bg = new Image();
-    bg.src = "bg_forest.png";
+const bg = new Image();
+bg.src = 'bg_forest.png';
 
-    const brett = new Image();
-    brett.src = "brett_idle.png";
+const brett = new Image();
+brett.src = 'brett_idle.png';
 
-    const platformImg = new Image();
-    platformImg.src = "platform_ice.png";
+const platformImg = new Image();
+platformImg.src = 'platform_ice.png';
 
-    const enemyImg = new Image();
-    enemyImg.src = "enemy1.png";
+const enemyImg = new Image();
+enemyImg.src = 'enemy1.png';
 
-    let brettX = 100;
-    let brettY = 300;
-    let brettVY = 0;
-    let gravity = 0.5;
-    let isJumping = false;
-    let isLeft = false;
-    let isRight = false;
+let platforms = [];
 
-    const platforms = [];
-    for (let i = 0; i < 40; i++) {
-      platforms.push({ x: i * 150, y: 400 - Math.random() * 150 });
-    }
+function createPlatforms() {
+  for (let i = 0; i < 40; i++) {
+    platforms.push({ x: i * 200, y: 500 });
+  }
+}
 
-    const enemy = { x: 1000, y: 360, width: 40, height: 40 };
+function drawPlatforms() {
+  for (let p of platforms) {
+    ctx.drawImage(platformImg, p.x, p.y);
+  }
+}
 
-    function drawBackground() {
-      ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-    }
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+  drawPlatforms();
+  ctx.drawImage(brett, 100, 450);
+  requestAnimationFrame(gameLoop);
+}
 
-    function drawPlatforms(offsetX) {
-      platforms.forEach(p => {
-        ctx.drawImage(platformImg, p.x - offsetX, p.y, 100, 20);
-      });
-    }
+startBtn.onclick = () => {
+  Promise.all([
+    new Promise(res => bg.onload = res),
+    new Promise(res => brett.onload = res),
+    new Promise(res => platformImg.onload = res),
+    new Promise(res => enemyImg.onload = res)
+  ]).then(() => {
+    createPlatforms();
+    startScreen.style.display = 'none';
+    touchControls.style.display = 'flex';
+    gameLoop();
+  });
+};
 
-    function drawBrett(offsetX) {
-      ctx.drawImage(brett, brettX - offsetX, brettY, 40, 40);
-    }
-
-    function drawEnemy(offsetX) {
-      ctx.drawImage(enemyImg, enemy.x - offsetX, enemy.y, enemy.width, enemy.height);
-    }
-
-    function checkCollision(p) {
-      return (
-        brettX + 40 > p.x && brettX < p.x + 100 &&
-        brettY + 40 > p.y && brettY + 40 < p.y + 20 &&
-        brettVY >= 0
-      );
-    }
-
-    function gameLoop() {
-      requestAnimationFrame(gameLoop);
-      let offsetX = brettX - 100;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBackground();
-      drawPlatforms(offsetX);
-      drawEnemy(offsetX);
-      drawBrett(offsetX);
-
-      brettY += brettVY;
-      brettVY += gravity;
-
-      let onPlatform = false;
-      platforms.forEach(p => {
-        if (checkCollision(p)) {
-          brettY = p.y - 40;
-          brettVY = 0;
-          onPlatform = true;
-        }
-      });
-
-      if (brettY > canvas.height) {
-        alert("Game Over");
-        window.location.reload();
-      }
-
-      if (isLeft) brettX -= 3;
-      if (isRight) brettX += 3;
-
-      if (brettX < 0) brettX = 0;
-
-      // Enemy collision
-      if (
-        brettX + 40 > enemy.x &&
-        brettX < enemy.x + enemy.width &&
-        brettY + 40 > enemy.y
-      ) {
-        alert("Game Over - Enemy hit!");
-        window.location.reload();
-      }
-    }
-
-    document.getElementById("startBtn").onclick = () => {
-      startScreen.style.display = "none";
-      touchControls.style.display = "flex";
-      gameLoop();
-    };
-
-    document.getElementById("btnLeft").addEventListener("touchstart", () => isLeft = true);
-    document.getElementById("btnLeft").addEventListener("touchend", () => isLeft = false);
-    document.getElementById("btnRight").addEventListener("touchstart", () => isRight = true);
-    document.getElementById("btnRight").addEventListener("touchend", () => isRight = false);
-    document.getElementById("btnJump").addEventListener("touchstart", () => {
-      if (!isJumping) {
-        brettVY = -10;
-        isJumping = true;
-      }
-    });
-
-    canvas.addEventListener("touchend", () => {
-      isJumping = false;
-    });
   </script>
 </body>
 </html>
