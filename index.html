@@ -3,94 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LittleBrett Snow Level</title>
+  <title>LittleBrett Game</title>
   <style>
-    body {
+    * {
       margin: 0;
-      overflow: hidden;
-      background: black;
-    }
-
-    canvas {
-      display: block;
-    }
-
-    #controls {
-      position: absolute;
-      top: 33.3vh; /* Just below the background image */
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      pointer-events: none;
-    }
-
-    .btn {
-      pointer-events: auto;
-      background: none;
-      border: none;
       padding: 0;
+      box-sizing: border-box;
     }
 
-    .btn img {
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      overflow: hidden;
+    }
+
+    #gameContainer {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #startScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: black;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #startButton {
+      width: 200px;
+      cursor: pointer;
+    }
+
+    #gameScreen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #bgForest {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 33vh;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    #littleBrett {
+      position: absolute;
       width: 60px;
-      height: 60px;
+      bottom: 33vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    #btnLeft, #btnRight {
+      position: absolute;
+      width: 60px;
+      bottom: 10px;
+      z-index: 5;
+    }
+
+    #btnLeft {
+      left: 20px;
+    }
+
+    #btnRight {
+      right: 20px;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="controls">
-    <button class="btn" id="leftBtn"><img src="btn_left.png" alt="Left" /></button>
-    <button class="btn" id="rightBtn"><img src="btn_right.png" alt="Right" /></button>
+  <div id="gameContainer">
+    <div id="startScreen">
+      <img id="startButton" src="btn_start.png" alt="Start Game">
+    </div>
+    
+    <div id="gameScreen">
+      <img id="bgForest" src="bg_forest.png" alt="Forest Background">
+      <img id="littleBrett" src="brett_idle.png" alt="LittleBrett">
+      <img id="btnLeft" src="btn_left.png" alt="Left">
+      <img id="btnRight" src="btn_right.png" alt="Right">
+    </div>
   </div>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const littleBrett = document.getElementById("littleBrett");
+    const btnLeft = document.getElementById("btnLeft");
+    const btnRight = document.getElementById("btnRight");
 
-    const bg = new Image();
-    bg.src = "bg_forest.png";
+    let brettX = window.innerWidth / 2;
 
-    const brett = new Image();
-    brett.src = "brett_idle.png";
-
-    let brettX = width / 2 - 50;
-    const brettY = 0.15 * height;
-    const brettSpeed = 5;
-    let movingLeft = false;
-    let movingRight = false;
-
-    document.getElementById("leftBtn").addEventListener("touchstart", () => movingLeft = true);
-    document.getElementById("leftBtn").addEventListener("touchend", () => movingLeft = false);
-    document.getElementById("rightBtn").addEventListener("touchstart", () => movingRight = true);
-    document.getElementById("rightBtn").addEventListener("touchend", () => movingRight = false);
-
-    function draw() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(bg, 0, 0, width, height / 3);
-
-      if (movingLeft) brettX -= brettSpeed;
-      if (movingRight) brettX += brettSpeed;
-
-      ctx.drawImage(brett, brettX, brettY, 80, 80);
-      requestAnimationFrame(draw);
+    function moveBrett(dx) {
+      brettX += dx;
+      brettX = Math.max(0, Math.min(window.innerWidth - 60, brettX));
+      littleBrett.style.left = `${brettX}px`;
     }
 
-    bg.onload = () => {
-      draw();
+    startButton.onclick = () => {
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
     };
 
-    window.addEventListener("resize", () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-    });
+    btnLeft.addEventListener("touchstart", () => moveBrett(-10));
+    btnRight.addEventListener("touchstart", () => moveBrett(10));
   </script>
 </body>
 </html>
