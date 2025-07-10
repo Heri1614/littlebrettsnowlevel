@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LittleBrett Game</title>
   <style>
     * {
@@ -45,44 +45,34 @@
       display: none;
       width: 100%;
       height: 100%;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      white-space: nowrap;
       position: relative;
     }
 
     #backgroundLayer {
-      position: relative;
-      width: 100%;
-      height: 33vh;
-      overflow: hidden;
-    }
-
-    #bgForest {
-      width: 100%;
+      width: 3000px; /* escenario largo para desplazarse */
       height: 100%;
-      object-fit: cover;
-      display: block;
+      position: relative;
+      background: url('bg_forest.png') repeat-x;
+      background-size: cover;
     }
 
     .platform {
       position: absolute;
-      bottom: 0;
-      z-index: 2;
+      width: 200px;
+      height: auto;
     }
 
-    #platformTall {
-      left: 20%;
-      width: 100px;
-    }
-
-    #platformSmall {
-      left: 60%;
-      width: 80px;
-    }
+    /* Posiciones ejemplo */
+    #platform1 { left: 200px; bottom: 50px; }
+    #platform2 { left: 500px; bottom: 120px; }
+    #platform3 { left: 800px; bottom: 80px; }
+    #platform4 { left: 1100px; bottom: 160px; }
+    #platform5 { left: 1400px; bottom: 100px; }
 
     @media (min-width: 768px) {
-      #backgroundLayer {
-        height: 60vh;
-      }
-
       #startButton {
         width: 260px;
       }
@@ -99,21 +89,23 @@
     <!-- Pantalla principal -->
     <div id="gameScreen">
       <div id="backgroundLayer">
-        <img id="bgForest" src="bg_forest.png" alt="Forest Background" />
-        <img id="platformTall" class="platform" src="Platform_tall.png" alt="Platform Tall" />
-        <img id="platformSmall" class="platform" src="Platform_small.png" alt="Platform Small" />
+        <img id="platform1" class="platform" src="Platform_tall.png" alt="Platform" />
+        <img id="platform2" class="platform" src="Platform_small.png" alt="Platform" />
+        <img id="platform3" class="platform" src="Platform_tall.png" alt="Platform" />
+        <img id="platform4" class="platform" src="Platform_small.png" alt="Platform" />
+        <img id="platform5" class="platform" src="Platform_tall.png" alt="Platform" />
       </div>
     </div>
   </div>
 
   <script>
-    const startButton = document.getElementById('startButton');
-    const startScreen = document.getElementById('startScreen');
-    const gameScreen = document.getElementById('gameScreen');
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
 
-    startButton.addEventListener('click', () => {
-      startScreen.style.display = 'none';
-      gameScreen.style.display = 'block';
+    startButton.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
     });
   </script>
 </body>
