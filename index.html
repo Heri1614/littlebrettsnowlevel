@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LittleBrett Snow Level</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LittleBrett Game Start</title>
   <style>
     * {
       margin: 0;
@@ -11,198 +11,84 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      background: black;
+      font-family: sans-serif;
+      background-color: #000;
     }
 
-    canvas {
-      display: block;
-      background: url('./bg_forest.png') no-repeat center center;
-      background-size: cover;
+    #gameContainer {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #startScreen {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 10;
     }
 
     #startButton {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
+      width: 200px;
+      height: auto;
       cursor: pointer;
     }
 
-    .controls {
-      position: absolute;
+    #gameScreen {
+      display: none;
       width: 100%;
-      bottom: 10px;
-      display: flex;
-      justify-content: space-around;
-      z-index: 10;
+      height: 100%;
+      position: relative;
     }
 
-    .controls img {
-      width: 80px;
-      height: auto;
+    #bgForest {
+      width: 100%;
+      height: 33vh;
+      object-fit: cover;
+      display: block;
     }
 
     @media (min-width: 768px) {
-      .controls img {
-        width: 100px;
+      #bgForest {
+        height: 60vh;
+      }
+
+      #startButton {
+        width: 250px;
       }
     }
   </style>
 </head>
 <body>
-  <img id="startButton" src="./btn_start.png" />
+  <div id="gameContainer">
+    <div id="startScreen">
+      <img id="startButton" src="btn_start.png" alt="Play Game" />
+    </div>
 
-  <canvas id="gameCanvas" width="800" height="480"></canvas>
-
-  <div class="controls" id="touchControls" style="display:none;">
-    <img src="./btn_left.png" id="leftBtn" />
-    <img src="./btn_jump.png" id="jumpBtn" />
-    <img src="./btn_right.png" id="rightBtn" />
+    <div id="gameScreen">
+      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
+    </div>
   </div>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
 
-    let brett = {
-      x: 50,
-      y: 360,
-      width: 50,
-      height: 50,
-      vx: 0,
-      vy: 0,
-      jumping: false,
-      onGround: false,
-    };
-
-    let gravity = 1.2;
-    let jumpForce = -15;
-    let platforms = [];
-    let coins = [];
-    let keys = {};
-
-    let enemy = { x: 600, y: 360, width: 50, height: 50 };
-
-    function createPlatforms() {
-      for (let i = 0; i < 40; i++) {
-        let x = i * 180;
-        let y = i % 2 === 0 ? 400 : 350;
-        platforms.push({ x, y, width: 100, height: 20 });
-        coins.push({ x: x + 25, y: y - 30 });
-      }
-    }
-
-    function drawBrett() {
-      ctx.fillStyle = "#3af";
-      ctx.fillRect(brett.x, brett.y, brett.width, brett.height);
-    }
-
-    function drawPlatforms() {
-      ctx.fillStyle = "#7cfc00";
-      platforms.forEach((p) => {
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-      });
-    }
-
-    function drawCoins() {
-      ctx.fillStyle = "gold";
-      coins.forEach((c) => {
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    function drawEnemy() {
-      ctx.fillStyle = "red";
-      ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-    }
-
-    function update() {
-      brett.vy += gravity;
-      brett.x += brett.vx;
-      brett.y += brett.vy;
-
-      brett.onGround = false;
-      platforms.forEach((p) => {
-        if (
-          brett.x + brett.width > p.x &&
-          brett.x < p.x + p.width &&
-          brett.y + brett.height >= p.y &&
-          brett.y + brett.height <= p.y + p.height
-        ) {
-          brett.vy = 0;
-          brett.y = p.y - brett.height;
-          brett.onGround = true;
-          brett.jumping = false;
-        }
-      });
-
-      if (keys["ArrowRight"]) brett.vx = 5;
-      else if (keys["ArrowLeft"]) brett.vx = -5;
-      else brett.vx = 0;
-
-      if (keys[" "] && brett.onGround && !brett.jumping) {
-        brett.vy = jumpForce;
-        brett.jumping = true;
-      }
-
-      if (
-        brett.x < enemy.x + enemy.width &&
-        brett.x + brett.width > enemy.x &&
-        brett.y < enemy.y + enemy.height &&
-        brett.y + brett.height > enemy.y
-      ) {
-        alert("¡Perdiste!");
-        location.reload();
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawPlatforms();
-      drawCoins();
-      drawEnemy();
-      drawBrett();
-    }
-
-    function gameLoop() {
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    document.addEventListener("keydown", (e) => (keys[e.key] = true));
-    document.addEventListener("keyup", (e) => (keys[e.key] = false));
-
-    document.getElementById("startButton").addEventListener("click", () => {
-      document.getElementById("startButton").style.display = "none";
-      document.getElementById("touchControls").style.display = "flex";
-      createPlatforms();
-      gameLoop();
-    });
-
-    // Touch controls
-    document.getElementById("leftBtn").addEventListener("touchstart", () => {
-      keys["ArrowLeft"] = true;
-    });
-    document.getElementById("leftBtn").addEventListener("touchend", () => {
-      keys["ArrowLeft"] = false;
-    });
-    document.getElementById("rightBtn").addEventListener("touchstart", () => {
-      keys["ArrowRight"] = true;
-    });
-    document.getElementById("rightBtn").addEventListener("touchend", () => {
-      keys["ArrowRight"] = false;
-    });
-    document.getElementById("jumpBtn").addEventListener("touchstart", () => {
-      keys[" "] = true;
-    });
-    document.getElementById("jumpBtn").addEventListener("touchend", () => {
-      keys[" "] = false;
+    startButton.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
     });
   </script>
 </body>
