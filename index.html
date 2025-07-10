@@ -1,72 +1,93 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LittleBrett Snow Level</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LittleBrett Game Start</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
     html, body {
       width: 100%;
       height: 100%;
+      background-color: #000;
       overflow: hidden;
-      background: black;
+      font-family: sans-serif;
     }
-    canvas {
-      display: block;
+
+    #gameContainer {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #startScreen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
       position: absolute;
       top: 0;
       left: 0;
+      z-index: 10;
+    }
+
+    #startButton {
+      width: 200px;
+      height: auto;
+      cursor: pointer;
+    }
+
+    #gameScreen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #bgForest {
+      width: 100%;
+      height: 33vh; /* Un tercio de la pantalla */
+      object-fit: cover;
+      display: block;
+    }
+
+    @media (min-width: 768px) {
+      #startButton {
+        width: 250px;
+      }
+      #bgForest {
+        height: 33vh;
+      }
     }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
+  <div id="gameContainer">
+    <div id="startScreen">
+      <img id="startButton" src="btn_start.png" alt="Play Game" />
+    </div>
+
+    <div id="gameScreen">
+      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
+    </div>
+  </div>
+
   <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;// Cargar imagen del fondo (ocupará 1/3 superior de la pantalla)
-const bg = new Image();
-bg.src = 'bg_forest.png';
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
 
-// Cargar imagen del personaje
-const brett = new Image();
-brett.src = 'brett_idle.png';
-
-// Posición inicial de LittleBrett dentro del fondo
-let brettX = 100;
-let brettY = height / 3 - 90; // fondo ocupa 1/3 desde arriba
-let brettSpeed = 5;
-let keys = {};
-
-window.addEventListener('keydown', e => keys[e.key] = true);
-window.addEventListener('keyup', e => keys[e.key] = false);
-
-function draw() {
-  ctx.clearRect(0, 0, width, height);
-
-  // Fondo ajustado al tercio superior
-  const bgHeight = height / 3;
-  ctx.drawImage(bg, 0, 0, width, bgHeight);
-
-  // Límites del movimiento solo dentro del fondo
-  if (keys['ArrowLeft'] && brettX > 0) brettX -= brettSpeed;
-  if (keys['ArrowRight'] && brettX + 60 < width) brettX += brettSpeed;
-
-  // Dibujar personaje
-  ctx.drawImage(brett, brettX, brettY, 60, 60);
-
-  requestAnimationFrame(draw);
-}
-
-draw();
-
+    startButton.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
+    });
   </script>
 </body>
 </html>
