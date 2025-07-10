@@ -3,92 +3,128 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LittleBrett Game</title>
+  <title>LittleBrett Game Start</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html {
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000;
+      font-family: sans-serif;
+      background-color: #000;
     }
+
     #gameContainer {
       width: 100%;
       height: 100%;
       position: relative;
     }
-    #bgForest {
+
+    #startScreen {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
       position: absolute;
       top: 0;
       left: 0;
-      z-index: 0;
+      z-index: 10;
     }
+
+    #startButton {
+      width: 200px;
+      height: auto;
+      cursor: pointer;
+    }
+
+    #gameScreen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #bgForest {
+      width: 100%;
+      height: 33vh;
+      object-fit: cover;
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    @media (min-width: 768px) {
+      #bgForest {
+        height: 60vh;
+      }
+
+      #startButton {
+        width: 250px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      #bgForest {
+        height: 33vh;
+      }
+    }
+
     #brett {
       position: absolute;
-      width: 80px;
-      bottom: 20px;
-      left: 50px;
-      z-index: 2;
-      transition: left 0.1s;
-    }
-    .control-btn {
-      position: absolute;
-      bottom: 20px;
-      width: 60px;
-      height: auto;
-      z-index: 3;
-    }
-    #btnLeft {
-      left: 20px;
-    }
-    #btnRight {
+      bottom: 33vh;
       left: 100px;
-    }
-    @media (min-width: 768px) {
-      .control-btn { display: none; }
+      width: 80px;
+      z-index: 2;
+      transition: left 0.1s linear;
     }
   </style>
 </head>
 <body>
   <div id="gameContainer">
-    <img id="bgForest" src="bg_forest.png" alt="Forest Background" />
-    <img id="brett" src="brett_idle.png" alt="LittleBrett" />
+    <div id="startScreen">
+      <img id="startButton" src="btn_start.png" alt="Play Game" />
+    </div>
 
-    <!-- Botones táctiles -->
-    <img id="btnLeft" class="control-btn" src="btn_left.png" alt="Left">
-    <img id="btnRight" class="control-btn" src="btn_right.png" alt="Right">
+    <div id="gameScreen">
+      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
+      <img id="brett" src="brett_idle.png" alt="LittleBrett" />
+    </div>
   </div>
 
   <script>
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
     const brett = document.getElementById("brett");
-    const btnLeft = document.getElementById("btnLeft");
-    const btnRight = document.getElementById("btnRight");
 
-    let position = 50;
-    const speed = 10;
+    let brettX = 100;
 
-    // Movimiento por teclado
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") moveLeft();
-      if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") moveRight();
+    startButton.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
     });
 
-    // Movimiento por botones táctiles
-    btnLeft.addEventListener("touchstart", moveLeft);
-    btnRight.addEventListener("touchstart", moveRight);
-
-    function moveLeft() {
-      position = Math.max(0, position - speed);
-      brett.style.left = position + "px";
-    }
-
-    function moveRight() {
-      position = Math.min(window.innerWidth - 80, position + speed);
-      brett.style.left = position + "px";
-    }
+    document.addEventListener("keydown", (e) => {
+      const step = 10;
+      if (e.key === "ArrowRight") {
+        brettX += step;
+        brett.style.left = brettX + "px";
+      } else if (e.key === "ArrowLeft") {
+        brettX -= step;
+        if (brettX < 0) brettX = 0;
+        brett.style.left = brettX + "px";
+      }
+    });
   </script>
 </body>
 </html>
