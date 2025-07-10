@@ -1,117 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LittleBrett Game Start</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LittleBrett Snow Level</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
-    html, body {
-      width: 100%;
+    body, html {
       height: 100%;
       overflow: hidden;
-      font-family: sans-serif;
-      background-color: #000;
     }
-
-    #gameContainer {
-      width: 100%;
-      height: 100%;
-      position: relative;
+    canvas {
+      display: block;
+      background: url('bg_forest.png') no-repeat center center;
+      background-size: cover;
     }
-
-    #startScreen {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
+    #startBtn {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       z-index: 10;
-    }
-
-    #startButton {
-      width: 200px;
-      height: auto;
       cursor: pointer;
     }
-
-    #gameScreen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    #bgForest {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .platform {
+    #invokeBtn {
       position: absolute;
-      width: auto;
-      height: 60px;
-      z-index: 2;
-    }
-
-    #platformTall {
-      left: 15%;
-      top: 26vh; /* Ajustado visualmente */
-    }
-
-    #platformSmall {
-      left: 60%;
-      top: 28vh; /* Ajustado visualmente */
-    }
-
-    @media (min-width: 768px) {
-      #startButton {
-        width: 250px;
-      }
-
-      #platformTall {
-        top: 45vh;
-      }
-
-      #platformSmall {
-        top: 47vh;
-      }
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="startScreen">
-      <img id="startButton" src="btn_start.png" alt="Play Game" />
-    </div>
+  <img id="startBtn" src="btn_start.png" width="150" />
+  <img id="invokeBtn" src="invoke_btn.png" width="80" />
+  <canvas id="gameCanvas" width="800" height="600"></canvas>  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const invokeBtn = document.getElementById('invokeBtn');
 
-    <div id="gameScreen">
-      <img id="bgForest" src="bg_forest.png" alt="Background Forest" />
-      <img id="platformTall" class="platform" src="Platform_tall.png" alt="Tall Platform" />
-      <img id="platformSmall" class="platform" src="Platform_small.png" alt="Small Platform" />
-    </div>
-  </div>
+    let gameStarted = false;
+    let platforms = [];
+    let coins = [];
+    let score = 0;
+    let invokes = 0;
+    let enemy = {
+      x: 400,
+      y: 400,
+      width: 50,
+      height: 50,
+      direction: 1
+    };
 
-  <script>
-    const startButton = document.getElementById("startButton");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
+    const brett = {
+      x: 100,
+      y: 500,
+      width: 50,
+      height: 50,
+      vy: 0,
+      jumpPower: -12,
+      grounded: false
+    };
 
-    startButton.addEventListener("click", () => {
-      startScreen.style.display = "none";
-      gameScreen.style.display = "block";
+    const gravity = 0.5;
+
+    function loadImage(src) {
+      const img = new Image();
+      img.src = src;
+      return img;
+    }
+
+    const imgBrett = loadImage('brett_idle.png');
+    const imgPlatformTall = loadImage('Platform_tall.png');
+    const imgPlatformSmall = loadImage('Platform_small.png');
+    const imgEnemy = loadImage('enemy1.png');
+
+    function createPlatforms() {
+      platforms = [
+        {x: 100, y: 500, img: imgPlatformTall},
+        {x: 250, y: 420, img: imgPlatformSmall},
+        {x: 400, y: 350, img: imgPlatformTall},
+        {x: 550, y: 280, img: imgPlatformSmall},
+        {x: 700, y: 210, img: imgPlatformTall}
+      ];
+    }
+
+    function drawPlatforms() {
+      platforms.forEach(p => ctx.drawImage(p.img, p.x, p.y));
+    }
+
+    function drawEnemy() {
+      ctx.drawImage(imgEnemy, enemy.x, enemy.y, enemy.width, enemy.height);
+    }
+
+    function updateEnemy() {
+      enemy.x += 2 * enemy.direction;
+      if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+        enemy.direction *= -1;
+      }
+    }
+
+    function drawBrett() {
+      ctx.drawImage(imgBrett, brett.x, brett.y, brett.width, brett.height);
+    }
+
+    function updateBrett() {
+      brett.vy += gravity;
+      brett.y += brett.vy;
+      brett.grounded = false;
+      platforms.forEach(p => {
+        if (brett.x < p.x + 64 && brett.x + brett.width > p.x &&
+            brett.y + brett.height < p.y + 10 && brett.y + brett.height > p.y - 10) {
+          brett.y = p.y - brett.height;
+          brett.vy = 0;
+          brett.grounded = true;
+        }
+      });
+    }
+
+    function gameLoop() {
+      if (!gameStarted) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlatforms();
+      updateEnemy();
+      drawEnemy();
+      updateBrett();
+      drawBrett();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      gameStarted = true;
+      startBtn.style.display = 'none';
+      createPlatforms();
+      gameLoop();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') brett.x -= 10;
+      if (e.key === 'ArrowRight') brett.x += 10;
+      if (e.key === 'ArrowUp' && brett.grounded) brett.vy = brett.jumpPower;
     });
-  </script>
-</body>
+
+    startBtn.addEventListener('click', startGame);
+  </script></body>
 </html>
