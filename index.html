@@ -1,310 +1,81 @@
-<!DOCTYPE html> <!-- Indica que el documento es HTML5 -->
-<html lang="en"> <!-- Inicio del documento HTML con idioma inglés -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" /> <!-- Establece codificación de caracteres como UTF-8 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- Asegura buena visualización en móviles -->
-  <title>LittleBrett Game</title> <!-- Título que se muestra en la pestaña del navegador -->
+  <meta charset="UTF-8">
+  <title>LittleBrett Game</title>
   <style>
-    * {
+    /* Elimina el margen y desborde del body */
+    body {
       margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      /* Elimina márgenes y rellenos por defecto y ajusta el modelo de caja */
+      overflow: hidden; /* Oculta scroll */
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      overflow: hidden;
-      /* Fondo negro y sin scroll visible */
+    /* Lienzo principal del juego */
+    canvas {
+      display: block; /* Quita espacio debajo del canvas */
+      background: #000; /* Fondo por defecto antes de cargar imagen */
     }
 
-    #gameContainer {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      /* Contenedor principal del juego */
-    }
-
-    #startScreen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: black;
-      z-index: 10;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      /* Pantalla de inicio: fondo negro y botón centrado */
-    }
-
+    /* Posicionamiento absoluto para el botón de inicio */
     #startButton {
-      width: 200px;
-      cursor: pointer;
-      /* Imagen del botón de inicio, tamaño fijo, clickeable */
-    }
-
-    #gameScreen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      /* Pantalla principal del juego, inicialmente oculta */
-    }
-
-    #bgForest {
       position: absolute;
-      top: 0;
-      width: 100%;
-      height: 100vh;
-      object-fit: cover;
-      z-index: 1;
-      /* Fondo del bosque: 33% de la pantalla de alto, arriba de todo */
-      /* Si cambias height puedes hacer el fondo más alto o más bajo */
-    }
-
-    #littleBrett {
-      position: absolute;
-      width: 60px;
-      bottom: 33vh;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
-      /* Personaje principal: inicia justo debajo del fondo (en la base) */
-      /* Puedes cambiar `bottom` para moverlo más arriba o abajo */
-    }
-
-    #btnLeft, #btnRight {
-      position: absolute;
-      width: 60px;
-      bottom: 10px;
-      z-index: 5;
-      /* Ambos botones de movimiento, con tamaño fijo y visibles siempre */
-    }
-
-    #btnLeft {
-      left: 20px;
-      /* Botón izquierdo está a la izquierda */
-    }
-
-    #btnRight {
-      right: 20px;
-      /* Botón derecho está a la derecha */
+      transform: translate(-50%, -50%); /* Centra el botón */
+      cursor: pointer;
+      z-index: 10; /* Asegura que esté sobre el canvas */
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    
-    <!-- Pantalla de inicio -->
-    <div id="startScreen">
-      <img id="startButton" src="btn_start.png" alt="Start Game">
-      <!-- Imagen del botón de inicio -->
-    </div>
 
-    <!-- Pantalla de juego (oculta al inicio) -->
-    <div id="gameScreen">
-      <img id="bgForest" src="bg_forest.png" alt="Forest Background">
-      <!-- Imagen del fondo de bosque -->
+  <!-- Imagen del botón de inicio -->
+  <img id="startButton" src="btn_start.png" alt="Start">
 
-      <img id="littleBrett" src="brett_idle.png" alt="LittleBrett">
-      <!-- Imagen inicial del personaje -->
+  <!-- Lienzo del juego -->
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
 
-      <img id="btnLeft" src="btn_left.png" alt="Left">
-      <!-- Imagen botón para moverse a la izquierda -->
-
-      <img id="btnRight" src="btn_right.png" alt="Right">
-      <!-- Imagen botón para moverse a la derecha -->
-    </div>
-  </div>
-
-  <!-- Código JavaScript -->
   <script>
-    const startButton = document.getElementById("startButton");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const littleBrett = document.getElementById("littleBrett");
-    const btnLeft = document.getElementById("btnLeft");
-    const btnRight = document.getElementById("btnRight");
+    // Obtener el botón y el canvas
+    const startButton = document.getElementById('startButton');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d'); // Contexto 2D para dibujar
 
-    // Posición inicial de LittleBrett (centro horizontal de la pantalla)
-    let brettX = window.innerWidth / 2;
+    // Cargar imágenes necesarias
+    const bgForest = new Image(); // Fondo del nivel
+    bgForest.src = 'bg_forest.png';
 
-    // Función para mover al personaje en X (horizontal)
-    function moveBrett(dx) {
-      brettX += dx;
-      // Evita que se salga de la pantalla (limita entre 0 y el ancho total menos el ancho del personaje)
-      brettX = Math.max(0, Math.min(window.innerWidth - 60, brettX));
-      littleBrett.style.left = `${brettX}px`;
-    }
+    const brettIdle = new Image(); // Sprite inicial de Brett
+    brettIdle.src = 'brett_idle.png';
 
-    // Cuando se hace clic en el botón de inicio:
+    // Posición inicial de Brett
+    let brettX = 400; // Posición horizontal (centro aproximado)
+    let brettY = 380; // Posición vertical para simular que está sobre la nieve
+
+    // Variable de control para saber si el juego inició
+    let gameStarted = false;
+
+    // Evento al hacer clic en el botón de inicio
     startButton.onclick = () => {
-      startScreen.style.display = "none"; // Oculta pantalla de inicio
-      gameScreen.style.display = "block"; // Muestra pantalla de juego
+      gameStarted = true;        // Cambia el estado a "juego iniciado"
+      startButton.style.display = 'none'; // Oculta el botón de inicio
+      drawGame();                // Llama a la función que dibuja la pantalla del juego
     };
 
-    // Movimiento táctil (para celulares) al presionar botón izquierdo
-    btnLeft.addEventListener("touchstart", () => moveBrett(-10));
-    
-    // Movimiento táctil (para celulares) al presionar botón derecho
-    btnRight.addEventListener("touchstart", () => moveBrett(10));
+    // Función que dibuja la escena inicial del juego
+    function drawGame() {
+      if (!gameStarted) return; // Si no ha empezado el juego, no dibuja nada
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpia el canvas
+
+      // Dibuja el fondo (bosque nevado)
+      ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+
+      // Dibuja a Brett en posición de idle
+      ctx.drawImage(brettIdle, brettX, brettY, 100, 100); 
+      // Últimos dos números: tamaño de Brett en pantalla. Puedes ajustar.
+    }
   </script>
-</body>
-</html>
-<!DOCTYPE html> <!-- Indica que el documento es HTML5 -->
-<html lang="en"> <!-- Inicio del documento HTML con idioma inglés -->
-<head>
-  <meta charset="UTF-8" /> <!-- Establece codificación de caracteres como UTF-8 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- Asegura buena visualización en móviles -->
-  <title>LittleBrett Game</title> <!-- Título que se muestra en la pestaña del navegador -->
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      /* Elimina márgenes y rellenos por defecto y ajusta el modelo de caja */
-    }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      overflow: hidden;
-      /* Fondo negro y sin scroll visible */
-    }
-
-    #gameContainer {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      /* Contenedor principal del juego */
-    }
-
-    #startScreen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: black;
-      z-index: 10;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      /* Pantalla de inicio: fondo negro y botón centrado */
-    }
-
-    #startButton {
-      width: 200px;
-      cursor: pointer;
-      /* Imagen del botón de inicio, tamaño fijo, clickeable */
-    }
-
-    #gameScreen {
-      display: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      /* Pantalla principal del juego, inicialmente oculta */
-    }
-
-    #bgForest {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      height: 33vh;
-      object-fit: cover;
-      z-index: 1;
-      /* Fondo del bosque: 33% de la pantalla de alto, arriba de todo */
-      /* Si cambias height puedes hacer el fondo más alto o más bajo */
-    }
-
-    #littleBrett {
-      position: absolute;
-      width: 60px;
-      bottom: 33vh;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
-      /* Personaje principal: inicia justo debajo del fondo (en la base) */
-      /* Puedes cambiar `bottom` para moverlo más arriba o abajo */
-    }
-
-    #btnLeft, #btnRight {
-      position: absolute;
-      width: 60px;
-      bottom: 10px;
-      z-index: 5;
-      /* Ambos botones de movimiento, con tamaño fijo y visibles siempre */
-    }
-
-    #btnLeft {
-      left: 20px;
-      /* Botón izquierdo está a la izquierda */
-    }
-
-    #btnRight {
-      right: 20px;
-      /* Botón derecho está a la derecha */
-    }
-  </style>
-</head>
-<body>
-  <div id="gameContainer">
-    
-    <!-- Pantalla de inicio -->
-    <div id="startScreen">
-      <img id="startButton" src="btn_start.png" alt="Start Game">
-      <!-- Imagen del botón de inicio -->
-    </div>
-
-    <!-- Pantalla de juego (oculta al inicio) -->
-    <div id="gameScreen">
-      <img id="bgForest" src="bg_forest.png" alt="Forest Background">
-      <!-- Imagen del fondo de bosque -->
-
-      <img id="littleBrett" src="brett_idle.png" alt="LittleBrett">
-      <!-- Imagen inicial del personaje -->
-
-      <img id="btnLeft" src="btn_left.png" alt="Left">
-      <!-- Imagen botón para moverse a la izquierda -->
-
-      <img id="btnRight" src="btn_right.png" alt="Right">
-      <!-- Imagen botón para moverse a la derecha -->
-    </div>
-  </div>
-
-  <!-- Código JavaScript -->
-  <script>
-    const startButton = document.getElementById("startButton");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const littleBrett = document.getElementById("littleBrett");
-    const btnLeft = document.getElementById("btnLeft");
-    const btnRight = document.getElementById("btnRight");
-
-    // Posición inicial de LittleBrett (centro horizontal de la pantalla)
-    let brettX = window.innerWidth / 2;
-
-    // Función para mover al personaje en X (horizontal)
-    function moveBrett(dx) {
-      brettX += dx;
-      // Evita que se salga de la pantalla (limita entre 0 y el ancho total menos el ancho del personaje)
-      brettX = Math.max(0, Math.min(window.innerWidth - 60, brettX));
-      littleBrett.style.left = `${brettX}px`;
-    }
-
-    // Cuando se hace clic en el botón de inicio:
-    startButton.onclick = () => {
-      startScreen.style.display = "none"; // Oculta pantalla de inicio
-      gameScreen.style.display = "block"; // Muestra pantalla de juego
-    };
-
-    // Movimiento táctil (para celulares) al presionar botón izquierdo
-    btnLeft.addEventListener("touchstart", () => moveBrett(-10));
-    
-    // Movimiento táctil (para celulares) al presionar botón derecho
-    btnRight.addEventListener("touchstart", () => moveBrett(10));
-  </script>
 </body>
 </html>
