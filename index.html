@@ -206,10 +206,10 @@ ctx.fillText(`Score: ${score}`, 20, 40);
    if (bullActive) {
   const bullY = canvas.height - 140; // Altura del toro (cerca del suelo)
   ctx.drawImage(bullFire, bullX, bullY, 150, 100); // Dibuja toro en movimiento
+}
      // Dibujar al enemigo si está vivo
 if (enemy.alive) {
   ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
-}
 }
    }
   // Bucle del juego
