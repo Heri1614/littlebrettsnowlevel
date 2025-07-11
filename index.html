@@ -81,6 +81,22 @@ coinImages.btc.src = 'btc.png';
 // Contador de puntos
 let score = 0;
    
+   const invokeButton = document.getElementById('invokeButton');
+
+// Verificar si debe mostrarse el botón en cada frame
+function checkInvokeButton() {
+  if (score >= 100) {
+    invokeButton.style.display = 'block';
+  } else {
+    invokeButton.style.display = 'none';
+  }
+}
+
+// Evento de clic (por ahora solo imprime en consola)
+invokeButton.onclick = () => {
+  console.log('INVOCAR PODER'); // Aquí luego irá el toro
+};
+
    // Lista de plataformas con su posición, tamaño y tipo
 const platforms = [
   { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
