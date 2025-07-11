@@ -323,6 +323,16 @@ if (enemy.alive) {
     bullActive = false;
     bullX = -200;
   }
+    // Movimiento del enemigo
+if (enemy.alive) {
+  enemy.x += enemy.speed * enemy.direction;
+
+  // Si llega al borde derecho de la pantalla o al punto inicial (x = 400), cambia de dirección
+  if (enemy.x + enemy.width > canvas.width || enemy.x < 400) {
+    enemy.direction *= -1; // Invierte dirección
+  }
+}
+
 }
 
 checkInvokeButton(); // Verifica si el botón debe mostrarse
