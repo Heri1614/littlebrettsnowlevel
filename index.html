@@ -60,6 +60,22 @@
 
   const brettFall = new Image();
   brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
+   // Lista de plataformas con su posición, tamaño y tipo
+const platforms = [
+  { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
+  { x: 350, y: 300, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' },
+  { x: 520, y: 280, width: 160, height: 30, img: 'log.png', type: 'log', triggered: false, timer: 0 },
+  { x: 700, y: 200, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' }
+];
+
+// Cargar imágenes de plataformas
+const platformImages = {};
+for (const p of platforms) {
+  if (!platformImages[p.img]) {
+    platformImages[p.img] = new Image();
+    platformImages[p.img].src = p.img;
+  }
+}
 
   let currentSprite = brettIdle; // Sprite que se mostrará según estado
   let brettX = 400;
@@ -91,7 +107,11 @@
  function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
-
+// Dibujar plataformas
+for (const p of platforms) {
+  if (p.type === 'log' && p.triggered && p.timer > 120) continue; // Si ya desapareció, no dibujes
+  ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
+}
   const brettWidth = canvas.width * 0.1;
   const brettHeight = brettWidth;
 
