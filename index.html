@@ -65,14 +65,14 @@
 bullFire.src = 'bull_fire.png';
    // Enemigo caminando sobre el piso
 const enemy = {
-  x: 400,              // Comienza en la derecha de la segunda plataforma
-  y: 460,              // Sobre el fondo (bg_forest)
-  width: 50,
-  height: 60,
-  speed: 2.5,
-  direction: 1,        // 1 = derecha, -1 = izquierda
-  alive: true,
-  img: new Image()
+  img: new Image(),
+  x: 400,              // posición inicial (ajústala si quieres)
+  y: canvas.height - 120, // debe estar cerca del suelo
+  width: 80,
+  height: 80,
+  speed: 2,
+  direction: 1,       // 1 para ir a la derecha, -1 para regresar
+  alive: true
 };
 enemy.img.src = 'enemy1.png';
 
