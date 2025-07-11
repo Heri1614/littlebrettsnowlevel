@@ -41,56 +41,130 @@
   <!-- Área del juego -->
   <canvas id="gameCanvas"></canvas>
 
-  <script>
-    const startButton = document.getElementById('startButton');
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+ <script>
+  const startButton = document.getElementById('startButton');
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
 
-    // Imágenes del juego
-    const bgForest = new Image();
-    bgForest.src = 'bg_forest.png';
+  const bgForest = new Image();
+  bgForest.src = 'bg_forest.png';
 
-    const brettIdle = new Image();
-    brettIdle.src = 'brett_idle.png';
+  const brettIdle = new Image();
+  brettIdle.src = 'brett_idle.png';
 
-    let brettX = 400;  // Posición horizontal de LittleBrett
-    let brettY = 380;  // Posición vertical (ajustaremos con tamaño dinámico)
-    let gameStarted = false;
+  const brettWalk = new Image();
+  brettWalk.src = 'brett_walk1.png';
 
-    // Ajustar el tamaño del canvas al tamaño de la ventana
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      if (gameStarted) drawGame(); // Redibuja si ya inició
+  const brettJump = new Image();
+  brettJump.src = 'brett_jump.png';
+
+  const brettFall = new Image();
+  brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
+
+  let currentSprite = brettIdle; // Sprite que se mostrará según estado
+  let brettX = 400;
+  let brettY = 380;
+  let velocityY = 0;
+  let isJumping = false;
+  let isFalling = false;
+  let moveLeft = false;
+  let moveRight = false;
+
+  let gameStarted = false;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (gameStarted) drawGame();
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+
+  startButton.onclick = () => {
+    gameStarted = true;
+    startButton.style.display = 'none';
+    resizeCanvas();
+    gameLoop(); // comienza la animación
+  };
+
+  // Función principal de dibujo
+  function drawGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+
+    // Actualizar sprite según estado
+    if (isJumping) {
+      currentSprite = brettJump;
+    } else if (moveLeft || moveRight) {
+      currentSprite = brettWalk;
+    } else {
+      currentSprite = brettIdle;
     }
 
-    // Evento al redimensionar pantalla
-    window.addEventListener('resize', resizeCanvas);
+    // Tamaño proporcional de Brett
+    const brettWidth = canvas.width * 0.1;
+    const brettHeight = brettWidth;
 
-    // Acción del botón de inicio
-    startButton.onclick = () => {
-      gameStarted = true;
-      startButton.style.display = 'none';
-      resizeCanvas(); // Ajustamos antes de dibujar
-    };
+    // Posición base para la nieve
+    if (!isJumping) brettY = canvas.height - brettHeight - 20;
 
-    // Dibujar el fondo y a Brett
-    function drawGame() {
-      // Limpiar el canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Dibujar a Brett
+    ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+  }
 
-      // Dibujar fondo
-      ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+  // Bucle del juego
+  function gameLoop() {
+    // Movimiento horizontal
+    const speed = 5;
 
-      // Calcular posición de Brett: centrado abajo
-      const brettWidth = canvas.width * 0.1; // 10% del ancho
-      const brettHeight = brettWidth;
-      brettX = canvas.width / 2 - brettWidth / 2;
-      brettY = canvas.height - brettHeight - 20; // 20px arriba del borde
+    if (moveLeft) brettX -= speed;
+    if (moveRight) brettX += speed;
 
-      // Dibujar a Brett en posición de espera
-      ctx.drawImage(brettIdle, brettX, brettY, brettWidth, brettHeight);
+    // Limitar a los bordes de la pantalla
+    brettX = Math.max(0, Math.min(canvas.width - canvas.width * 0.1, brettX));
+
+    // Salto simple sin gravedad aún
+    if (isJumping) {
+      velocityY -= 1.5;
+      brettY += velocityY;
+
+      if (brettY >= canvas.height - (canvas.width * 0.1) - 20) {
+        // Ya cayó
+        brettY = canvas.height - (canvas.width * 0.1) - 20;
+        isJumping = false;
+        velocityY = 0;
+      }
     }
-  </script>
+
+    drawGame();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Teclado presionado
+  window.addEventListener('keydown', (e) => {
+    if (!gameStarted) return;
+
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+      moveLeft = true;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd') {
+      moveRight = true;
+    }
+    if ((e.key === ' ' || e.key === 'w') && !isJumping) {
+      isJumping = true;
+      velocityY = -18; // Fuerza de salto
+    }
+  });
+
+  // Teclado liberado
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+      moveLeft = false;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd') {
+      moveRight = false;
+    }
+  });
+</script>
 </body>
 </html>
