@@ -63,6 +63,18 @@
   brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
    const bullFire = new Image();
 bullFire.src = 'bull_fire.png';
+   // Enemigo caminando sobre el piso
+const enemy = {
+  x: 400,              // Comienza en la derecha de la segunda plataforma
+  y: 460,              // Sobre el fondo (bg_forest)
+  width: 50,
+  height: 60,
+  speed: 2.5,
+  direction: 1,        // 1 = derecha, -1 = izquierda
+  alive: true,
+  img: new Image()
+};
+enemy.img.src = 'enemy1.png';
 
 // Lista de monedas
 const coins = [
@@ -193,6 +205,10 @@ ctx.fillText(`Score: ${score}`, 20, 40);
    if (bullActive) {
   const bullY = canvas.height - 140; // Altura del toro (cerca del suelo)
   ctx.drawImage(bullFire, bullX, bullY, 150, 100); // Dibuja toro en movimiento
+     // Dibujar al enemigo si está vivo
+if (enemy.alive) {
+  ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
+}
 }
    }
   // Bucle del juego
@@ -285,6 +301,19 @@ for (const c of coins) {
     }
   }
 }
+  // Movimiento del enemigo (si está vivo)
+if (enemy.alive) {
+  enemy.x += enemy.speed * enemy.direction;
+
+  // Cambia de dirección si llega a los bordes definidos
+  if (enemy.x + enemy.width >= canvas.width) {
+    enemy.direction = -1;
+  }
+  if (enemy.x <= 400) {
+    enemy.direction = 1;
+  }
+}
+
   if (bullActive) {
   bullX += bullSpeed; // Mueve el toro hacia la derecha
 
