@@ -4,78 +4,93 @@
   <meta charset="UTF-8">
   <title>LittleBrett Game</title>
   <style>
-    /* Elimina el margen y desborde del body */
-    body {
+    /* El body no debe tener márgenes y debe ocupar toda la pantalla */
+    html, body {
       margin: 0;
-      overflow: hidden; /* Oculta scroll */
+      padding: 0;
+      overflow: hidden; /* Oculta cualquier scroll */
+      height: 100%;
+      background-color: black; /* Fondo negro mientras carga */
     }
 
-    /* Lienzo principal del juego */
+    /* Canvas que ocupa el 100% del viewport */
     canvas {
-      display: block; /* Quita espacio debajo del canvas */
-      background: #000; /* Fondo por defecto antes de cargar imagen */
+      display: block;
+      width: 100vw;
+      height: 100vh;
     }
 
-    /* Posicionamiento absoluto para el botón de inicio */
+    /* Botón centrado con tamaño responsivo */
     #startButton {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%); /* Centra el botón */
+      transform: translate(-50%, -50%);
+      width: 25vw; /* 25% del ancho de la ventana */
+      max-width: 300px; /* Máximo 300px */
+      z-index: 10;
       cursor: pointer;
-      z-index: 10; /* Asegura que esté sobre el canvas */
     }
   </style>
 </head>
 <body>
 
-  <!-- Imagen del botón de inicio -->
+  <!-- Botón para iniciar el juego -->
   <img id="startButton" src="btn_start.png" alt="Start">
 
-  <!-- Lienzo del juego -->
-  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <!-- Área del juego -->
+  <canvas id="gameCanvas"></canvas>
 
   <script>
-    // Obtener el botón y el canvas
     const startButton = document.getElementById('startButton');
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d'); // Contexto 2D para dibujar
+    const ctx = canvas.getContext('2d');
 
-    // Cargar imágenes necesarias
-    const bgForest = new Image(); // Fondo del nivel
+    // Imágenes del juego
+    const bgForest = new Image();
     bgForest.src = 'bg_forest.png';
 
-    const brettIdle = new Image(); // Sprite inicial de Brett
+    const brettIdle = new Image();
     brettIdle.src = 'brett_idle.png';
 
-    // Posición inicial de Brett
-    let brettX = 400; // Posición horizontal (centro aproximado)
-    let brettY = 380; // Posición vertical para simular que está sobre la nieve
-
-    // Variable de control para saber si el juego inició
+    let brettX = 400;  // Posición horizontal de LittleBrett
+    let brettY = 380;  // Posición vertical (ajustaremos con tamaño dinámico)
     let gameStarted = false;
 
-    // Evento al hacer clic en el botón de inicio
+    // Ajustar el tamaño del canvas al tamaño de la ventana
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (gameStarted) drawGame(); // Redibuja si ya inició
+    }
+
+    // Evento al redimensionar pantalla
+    window.addEventListener('resize', resizeCanvas);
+
+    // Acción del botón de inicio
     startButton.onclick = () => {
-      gameStarted = true;        // Cambia el estado a "juego iniciado"
-      startButton.style.display = 'none'; // Oculta el botón de inicio
-      drawGame();                // Llama a la función que dibuja la pantalla del juego
+      gameStarted = true;
+      startButton.style.display = 'none';
+      resizeCanvas(); // Ajustamos antes de dibujar
     };
 
-    // Función que dibuja la escena inicial del juego
+    // Dibujar el fondo y a Brett
     function drawGame() {
-      if (!gameStarted) return; // Si no ha empezado el juego, no dibuja nada
+      // Limpiar el canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpia el canvas
-
-      // Dibuja el fondo (bosque nevado)
+      // Dibujar fondo
       ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
 
-      // Dibuja a Brett en posición de idle
-      ctx.drawImage(brettIdle, brettX, brettY, 100, 100); 
-      // Últimos dos números: tamaño de Brett en pantalla. Puedes ajustar.
+      // Calcular posición de Brett: centrado abajo
+      const brettWidth = canvas.width * 0.1; // 10% del ancho
+      const brettHeight = brettWidth;
+      brettX = canvas.width / 2 - brettWidth / 2;
+      brettY = canvas.height - brettHeight - 20; // 20px arriba del borde
+
+      // Dibujar a Brett en posición de espera
+      ctx.drawImage(brettIdle, brettX, brettY, brettWidth, brettHeight);
     }
   </script>
-
 </body>
 </html>
