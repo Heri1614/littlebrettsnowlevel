@@ -88,57 +88,59 @@
   };
 
   // Función principal de dibujo
-  function drawGame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+ function drawGame() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
 
-    // Actualizar sprite según estado
-    if (isJumping) {
-      currentSprite = brettJump;
-    } else if (moveLeft || moveRight) {
-      currentSprite = brettWalk;
+  const brettWidth = canvas.width * 0.1;
+  const brettHeight = brettWidth;
+
+  // Cambiar sprite según estado
+  if (isJumping) {
+    if (velocityY < 0) {
+      currentSprite = brettJump; // Subiendo
     } else {
-      currentSprite = brettIdle;
+      currentSprite = brettFall; // Cayendo
     }
-
-    // Tamaño proporcional de Brett
-    const brettWidth = canvas.width * 0.1;
-    const brettHeight = brettWidth;
-
-    // Posición base para la nieve
-    if (!isJumping) brettY = canvas.height - brettHeight - 20;
-
-    // Dibujar a Brett
-    ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+  } else if (moveLeft || moveRight) {
+    currentSprite = brettWalk;
+  } else {
+    currentSprite = brettIdle;
   }
 
+  // Dibujar a Brett
+  ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+}
   // Bucle del juego
-  function gameLoop() {
-    // Movimiento horizontal
-    const speed = 5;
+ function gameLoop() {
+  const speed = 5;
+  const gravity = 1.2; // Aceleración hacia abajo
 
-    if (moveLeft) brettX -= speed;
-    if (moveRight) brettX += speed;
+  // Movimiento horizontal
+  if (moveLeft) brettX -= speed;
+  if (moveRight) brettX += speed;
 
-    // Limitar a los bordes de la pantalla
-    brettX = Math.max(0, Math.min(canvas.width - canvas.width * 0.1, brettX));
+  // Límite de pantalla
+  const brettWidth = canvas.width * 0.1;
+  brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
 
-    // Salto simple sin gravedad aún
-    if (isJumping) {
-      velocityY -= 1.5;
-      brettY += velocityY;
+  // Saltar y caer
+  if (isJumping) {
+    velocityY += gravity;      // Aumenta la velocidad hacia abajo
+    brettY += velocityY;       // Aplica movimiento vertical
 
-      if (brettY >= canvas.height - (canvas.width * 0.1) - 20) {
-        // Ya cayó
-        brettY = canvas.height - (canvas.width * 0.1) - 20;
-        isJumping = false;
-        velocityY = 0;
-      }
+    // Si toca el suelo
+    const groundY = canvas.height - brettWidth - 20;
+    if (brettY >= groundY) {
+      brettY = groundY;
+      isJumping = false;
+      velocityY = 0;
     }
-
-    drawGame();
-    requestAnimationFrame(gameLoop);
   }
+
+  drawGame();
+  requestAnimationFrame(gameLoop);
+}
 
   // Teclado presionado
   window.addEventListener('keydown', (e) => {
