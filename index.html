@@ -132,31 +132,67 @@ for (const p of platforms) {
   ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
 }
   // Bucle del juego
- function gameLoop() {
+function gameLoop() {
   const speed = 5;
-  const gravity = 1.2; // Aceleración hacia abajo
+  const gravity = 1.2;
+  const brettWidth = canvas.width * 0.1;
+  const brettHeight = brettWidth;
 
   // Movimiento horizontal
   if (moveLeft) brettX -= speed;
   if (moveRight) brettX += speed;
 
-  // Límite de pantalla
-  const brettWidth = canvas.width * 0.1;
+  // Limitar dentro de la pantalla
   brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
 
-  // Saltar y caer
-  if (isJumping) {
-    velocityY += gravity;      // Aumenta la velocidad hacia abajo
-    brettY += velocityY;       // Aplica movimiento vertical
+  // Aplicar gravedad
+  velocityY += gravity;
+  brettY += velocityY;
 
-    // Si toca el suelo
-    const groundY = canvas.height - brettWidth - 20;
-    if (brettY >= groundY) {
-      brettY = groundY;
-      isJumping = false;
+  // Verificar colisión con plataformas
+  let onPlatform = false;
+
+  for (const p of platforms) {
+    if (p.type === 'log' && p.triggered) {
+      p.timer++;
+      if (p.timer > 120) continue; // Si ya pasaron 2s, desaparece
+    }
+
+    const footY = brettY + brettHeight;
+    const onTop =
+      brettX + brettWidth > p.x &&
+      brettX < p.x + p.width &&
+      footY >= p.y &&
+      footY <= p.y + 20 &&
+      velocityY >= 0;
+
+    if (onTop) {
+      brettY = p.y - brettHeight;
       velocityY = 0;
+      isJumping = false;
+      onPlatform = true;
+
+      if (p.type === 'log' && !p.triggered) {
+        p.triggered = true;
+        p.timer = 0;
+      }
     }
   }
+
+  // Verificar si toca el suelo
+  const groundY = canvas.height - brettHeight - 20;
+  if (brettY >= groundY) {
+    brettY = groundY;
+    velocityY = 0;
+    isJumping = false;
+    onPlatform = true;
+  }
+
+  // Si no está en el suelo ni en plataforma, está cayendo
+  if (!onPlatform) {
+    isJumping = true;
+  }
+
   drawGame();
   requestAnimationFrame(gameLoop);
 }
