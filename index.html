@@ -157,44 +157,6 @@ for (const p of platforms) {
       velocityY = 0;
     }
   }
-let onPlatform = false;
-
-for (const p of platforms) {
-  if (p.type === 'log' && p.triggered) {
-    p.timer++;
-    if (p.timer > 120) continue; // desaparece tras 120 frames (~2 segundos)
-  }
-
-  // Colisión desde arriba
-  const brettWidth = canvas.width * 0.1;
-  const brettHeight = brettWidth;
-  const nextY = brettY + velocityY;
-  const footY = nextY + brettHeight;
-
-  const onTop =
-    brettX + brettWidth > p.x &&
-    brettX < p.x + p.width &&
-    footY >= p.y &&
-    brettY + brettHeight <= p.y + 15 &&
-    velocityY >= 0;
-
-  if (onTop) {
-    brettY = p.y - brettHeight;
-    velocityY = 0;
-    isJumping = false;
-    onPlatform = true;
-
-    if (p.type === 'log' && !p.triggered) {
-      p.triggered = true;
-      p.timer = 0;
-    }
-  }
-}
-
-// Si no está en el suelo ni en plataforma, sigue cayendo
-if (!onPlatform && brettY < canvas.height - brettHeight - 20) {
-  isJumping = true;
-}
   drawGame();
   requestAnimationFrame(gameLoop);
 }
