@@ -61,6 +61,9 @@
 
   const brettFall = new Image();
   brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
+   const bullFire = new Image();
+bullFire.src = 'bull_fire.png';
+
 // Lista de monedas
 const coins = [
   { x: 220, y: 360, type: 'coin', value: 20, collected: false },
@@ -80,7 +83,10 @@ coinImages.btc.src = 'btc.png';
 
 // Contador de puntos
 let score = 0;
-   
+   let bullActive = false;     // Indica si el toro está en pantalla
+let bullX = -200;           // Posición inicial fuera del canvas
+let bullSpeed = 15;         // Velocidad con la que se moverá el toro
+
    const invokeButton = document.getElementById('invokeButton');
 
 // Verificar si debe mostrarse el botón en cada frame
@@ -94,7 +100,11 @@ function checkInvokeButton() {
 
 // Evento de clic (por ahora solo imprime en consola)
 invokeButton.onclick = () => {
-  console.log('INVOCAR PODER'); // Aquí luego irá el toro
+  if (!bullActive) {
+    bullActive = true;
+    bullX = -200; // Reinicia la posición del toro fuera del canvas
+    console.log('TORO INVOCADO');
+  }
 };
 
    // Lista de plataformas con su posición, tamaño y tipo
@@ -180,6 +190,9 @@ ctx.fillText(`Score: ${score}`, 20, 40);
 
   // Dibujar a Brett
   ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+   if (bullActive) {
+  const bullY = canvas.height - 140; // Altura del toro (cerca del suelo)
+  ctx.drawImage(bullFire, bullX, bullY, 150, 100); // Dibuja toro en movimiento
 }
   // Bucle del juego
 function gameLoop() {
@@ -271,6 +284,16 @@ for (const c of coins) {
     }
   }
 }
+  if (bullActive) {
+  bullX += bullSpeed; // Mueve el toro hacia la derecha
+
+  // Si ya salió por el borde derecho, lo desactiva y reinicia su posición
+  if (bullX > canvas.width) {
+    bullActive = false;
+    bullX = -200;
+  }
+}
+
 checkInvokeButton(); // Verifica si el botón debe mostrarse
   drawGame();
   requestAnimationFrame(gameLoop);
