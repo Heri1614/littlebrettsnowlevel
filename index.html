@@ -60,6 +60,26 @@
 
   const brettFall = new Image();
   brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
+// Lista de monedas
+const coins = [
+  { x: 220, y: 360, type: 'coin', value: 20, collected: false },
+  { x: 370, y: 260, type: 'eth', value: 30, collected: false },
+  { x: 720, y: 160, type: 'btc', value: 50, collected: false }
+];
+
+// Cargar imágenes de monedas
+const coinImages = {
+  coin: new Image(),
+  eth: new Image(),
+  btc: new Image()
+};
+coinImages.coin.src = 'coin.png';
+coinImages.eth.src = 'eth.png';
+coinImages.btc.src = 'btc.png';
+
+// Contador de puntos
+let score = 0;
+   
    // Lista de plataformas con su posición, tamaño y tipo
 const platforms = [
   { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
@@ -112,6 +132,19 @@ for (const p of platforms) {
   if (p.type === 'log' && p.triggered && p.timer > 120) continue; // Si ya desapareció, no dibujes
   ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
 }
+   // Dibujar monedas que no han sido recogidas
+for (const c of coins) {
+  if (!c.collected) {
+    ctx.drawImage(coinImages[c.type], c.x, c.y, 30, 30);
+  }
+}
+
+// Dibujar marcador de puntos
+ctx.fillStyle = 'white';
+ctx.font = '24px Arial';
+ctx.fillText(`Score: ${score}`, 20, 40);
+   
+// A partir de aquí se dibuja a Brett como siempre...
   const brettWidth = canvas.width * 0.1;
   const brettHeight = brettWidth;
 
@@ -203,6 +236,24 @@ function gameLoop() {
   if (!onPlatform) {
     isJumping = true;
   }
+  
+// Detectar recolección de monedas
+for (const c of coins) {
+  if (!c.collected) {
+    const brettWidth = canvas.width * 0.1;
+    const brettHeight = brettWidth;
+    const brettRight = brettX + brettWidth;
+    const brettBottom = brettY + brettHeight;
+
+    const colX = brettRight > c.x && brettX < c.x + 30;
+    const colY = brettBottom > c.y && brettY < c.y + 30;
+
+    if (colX && colY) {
+      c.collected = true;
+      score += c.value;
+    }
+  }
+}
 
   drawGame();
   requestAnimationFrame(gameLoop);
