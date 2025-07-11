@@ -153,11 +153,22 @@ function gameLoop() {
   let onPlatform = false;
 
   for (const p of platforms) {
-    if (p.type === 'log' && p.triggered) {
-      p.timer++;
-      if (p.timer > 120) continue; // Si ya pasaron 2s, desaparece
+    if (p.type === 'log') {
+  if (p.triggered) {
+    p.timer++;
+
+    if (p.timer > 120 && p.timer <= 360) {
+      continue; // tronco está oculto (ya pasaron 2s pero no han pasado 6s)
     }
 
+    if (p.timer > 360) {
+      // Ya pasaron 6 segundos desde que Brett lo pisó, se reinicia
+      p.triggered = false;
+      p.timer = 0;
+    }
+  }
+}
+    
     const footY = brettY + brettHeight;
     const onTop =
       brettX + brettWidth > p.x &&
