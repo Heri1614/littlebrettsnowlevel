@@ -317,6 +317,26 @@ if (enemy.alive) {
 
   if (bullActive) {
   bullX += bullSpeed; // Mueve el toro hacia la derecha
+  // Verificar colisión entre toro y enemigo
+  if (enemy.alive) {
+    const bullY = canvas.height - 140;
+    const bullWidth = 150;
+    const bullHeight = 100;
+
+    const bullRight = bullX + bullWidth;
+    const bullBottom = bullY + bullHeight;
+
+    const enemyRight = enemy.x + enemy.width;
+    const enemyBottom = enemy.y + enemy.height;
+
+    const colX = bullRight > enemy.x && bullX < enemyRight;
+    const colY = bullBottom > enemy.y && bullY < enemyBottom;
+
+    if (colX && colY) {
+      enemy.alive = false; // Elimina al enemigo
+      console.log("¡Enemigo destruido por el toro!");
+    }
+  }
 
   // Si ya salió por el borde derecho, lo desactiva y reinicia su posición
   if (bullX > canvas.width) {
