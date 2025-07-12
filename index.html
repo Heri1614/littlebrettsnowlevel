@@ -218,7 +218,7 @@ ctx.fillText(`Score: ${score}`, 20, 40);
      // Dibujar al enemigo si está vivo
 if (enemy.alive) {
   ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
-} else if (enemy.exploding && enemy.explosionTimer > 0) {
+} else if (enemy.exploding && enemy.explosionTimer > 0 && explosionLoaded) {
   const explosionX = enemy.x + (enemy.width / 2) - 50;
   const explosionY = enemy.y + (enemy.height / 2) - 50;
   ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
