@@ -4,25 +4,30 @@
   <meta charset="UTF-8">
   <title>LittleBrett Game</title>
   <style>
+    /* El body no debe tener márgenes y debe ocupar toda la pantalla */
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
+      overflow: hidden; /* Oculta cualquier scroll */
       height: 100%;
-      background-color: black;
+      background-color: black; /* Fondo negro mientras carga */
     }
+
+    /* Canvas que ocupa el 100% del viewport */
     canvas {
       display: block;
       width: 100vw;
       height: 100vh;
     }
+
+    /* Botón centrado con tamaño responsivo */
     #startButton {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 25vw;
-      max-width: 300px;
+      width: 25vw; /* 25% del ancho de la ventana */
+      max-width: 300px; /* Máximo 300px */
       z-index: 10;
       cursor: pointer;
     }
@@ -30,288 +35,381 @@
 </head>
 <body>
 
-  <img id="startButton" src="btn_start.png" alt="Start" disabled>
+  <!-- Botón para iniciar el juego -->
+  <img id="startButton" src="btn_start.png" alt="Start">
+
+  <!-- Área del juego -->
   <canvas id="gameCanvas"></canvas>
   <img id="invokeButton" src="invoke_btn.png" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 70px; cursor: pointer; z-index: 20;">
 
-  <script>
-    const startButton = document.getElementById('startButton');
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+ <script>
+  const startButton = document.getElementById('startButton');
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
 
-    const bgForest = new Image();
-    bgForest.src = 'bg_forest.png';
+  const bgForest = new Image();
+  bgForest.src = 'bg_forest.png';
 
-    const brettIdle = new Image(); brettIdle.src = 'brett_idle.png';
-    const brettWalk = new Image(); brettWalk.src = 'brett_walk1.png';
-    const brettJump = new Image(); brettJump.src = 'brett_jump.png';
-    const brettFall = new Image(); brettFall.src = 'brett_fall.png';
-    const bullFire = new Image(); bullFire.src = 'bull_fire.png';
+  const brettIdle = new Image();
+  brettIdle.src = 'brett_idle.png';
 
-    const enemy = {
-      x: 400, y: 460, width: 50, height: 60, speed: 2.5, direction: 1,
-      alive: true, exploding: false, explosionTimer: 0,
-      img: new Image()
-    };
-    enemy.img.src = 'enemy1.png';
+  const brettWalk = new Image();
+  brettWalk.src = 'brett_walk1.png';
 
-    const explosionImg = new Image();
-    explosionImg.src = 'explosion.png';
-    let explosionLoaded = false;
-    explosionImg.onload = () => {
-      explosionLoaded = true;
-      startButton.disabled = false;  // ✅ Activar botón cuando la imagen esté cargada
-    };
+  const brettJump = new Image();
+  brettJump.src = 'brett_jump.png';
 
-    const coins = [
-      { x: 220, y: 360, type: 'coin', value: 20, collected: false },
-      { x: 370, y: 260, type: 'eth', value: 30, collected: false },
-      { x: 720, y: 160, type: 'btc', value: 50, collected: false }
-    ];
+  const brettFall = new Image();
+  brettFall.src = 'brett_fall.png'; // solo se mostrará cuando haya colisión con enemigo
+   const bullFire = new Image();
+bullFire.src = 'bull_fire.png';
+   // Enemigo caminando sobre el piso
+// Enemigo caminando sobre el piso
+const enemy = {
+  x: 400,              // Comienza en la derecha de la segunda plataforma
+  y: 460,              // Sobre el fondo (bg_forest)
+  width: 50,
+  height: 60,
+  speed: 2.5,
+  direction: 1,        // 1 = derecha, -1 = izquierda
+  alive: true,
+  exploding: false,
+explosionTimer: 0,
+  img: new Image()
+};
+enemy.img.src = 'enemy1.png';
+const explosionImg = new Image();
+explosionImg.src = 'explosion.png'; // Asegúrate de tener esta imagen en tu carpeta
+   let explosionLoaded = false;
+explosionImg.onload = () => {
+  explosionLoaded = true;
+};
 
-    const coinImages = {
-      coin: new Image(),
-      eth: new Image(),
-      btc: new Image()
-    };
-    coinImages.coin.src = 'coin.png';
-    coinImages.eth.src = 'eth.png';
-    coinImages.btc.src = 'btc.png';
+// Lista de monedas
+const coins = [
+  { x: 220, y: 360, type: 'coin', value: 20, collected: false },
+  { x: 370, y: 260, type: 'eth', value: 30, collected: false },
+  { x: 720, y: 160, type: 'btc', value: 50, collected: false }
+];
 
-    let score = 0;
-    let bullActive = false;
-    let bullX = -200;
-    let bullSpeed = 15;
-    const invokeButton = document.getElementById('invokeButton');
+// Cargar imágenes de monedas
+const coinImages = {
+  coin: new Image(),
+  eth: new Image(),
+  btc: new Image()
+};
+coinImages.coin.src = 'coin.png';
+coinImages.eth.src = 'eth.png';
+coinImages.btc.src = 'btc.png';
 
-    function checkInvokeButton() {
-      invokeButton.style.display = score >= 100 ? 'block' : 'none';
+// Contador de puntos
+let score = 0;
+   let bullActive = false;     // Indica si el toro está en pantalla
+let bullX = -200;           // Posición inicial fuera del canvas
+let bullSpeed = 15;         // Velocidad con la que se moverá el toro
+
+   const invokeButton = document.getElementById('invokeButton');
+
+// Verificar si debe mostrarse el botón en cada frame
+function checkInvokeButton() {
+  if (score >= 100) {
+    invokeButton.style.display = 'block';
+  } else {
+    invokeButton.style.display = 'none';
+  }
+}
+
+// Evento de clic (por ahora solo imprime en consola)
+invokeButton.onclick = () => {
+  if (!bullActive) {
+    bullActive = true;
+    bullX = -200; // Reinicia la posición del toro fuera del canvas
+    console.log('TORO INVOCADO');
+  }
+};
+
+   // Lista de plataformas con su posición, tamaño y tipo
+const platforms = [
+  { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
+  { x: 350, y: 300, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' },
+  { x: 520, y: 280, width: 160, height: 30, img: 'log.png', type: 'log', triggered: false, timer: 0 },
+  { x: 700, y: 200, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' }
+];
+
+// Cargar imágenes de plataformas
+const platformImages = {};
+for (const p of platforms) {
+  if (!platformImages[p.img]) {
+    platformImages[p.img] = new Image();
+    platformImages[p.img].src = p.img;
+  }
+}
+
+  let currentSprite = brettIdle; // Sprite que se mostrará según estado
+  let brettX = 400;
+  let brettY = 380;
+  let velocityY = 0;
+  let isJumping = false;
+  let isFalling = false;
+  let moveLeft = false;
+  let moveRight = false;
+
+  let gameStarted = false;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (gameStarted) drawGame();
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+
+  startButton.onclick = () => {
+    gameStarted = true;
+    startButton.style.display = 'none';
+        canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    resizeCanvas();
+    gameLoop(); // comienza la animación
+  };
+
+  // Función principal de dibujo
+ function drawGame() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+// Dibujar plataformas
+for (const p of platforms) {
+  if (p.type === 'log' && p.triggered && p.timer > 120) continue; // Si ya desapareció, no dibujes
+  ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
+}
+   // Dibujar monedas que no han sido recogidas
+for (const c of coins) {
+  if (!c.collected) {
+    ctx.drawImage(coinImages[c.type], c.x, c.y, 30, 30);
+  }
+}
+
+// Dibujar marcador de puntos
+ctx.fillStyle = 'white';
+ctx.font = '24px Arial';
+ctx.fillText(`Score: ${score}`, 20, 40);
+   
+// A partir de aquí se dibuja a Brett como siempre...
+  const brettWidth = canvas.width * 0.1;
+  const brettHeight = brettWidth;
+
+  // Cambiar sprite según estado
+  if (isJumping) {
+    if (velocityY < 0) {
+      currentSprite = brettJump; // Subiendo
+    } else {
+      currentSprite = brettFall; // Cayendo
+    }
+  } else if (moveLeft || moveRight) {
+    currentSprite = brettWalk;
+  } else {
+    currentSprite = brettIdle;
+  }
+
+  // Dibujar a Brett
+  ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+   if (bullActive) {
+  const bullY = canvas.height - 140; // Altura del toro (cerca del suelo)
+  ctx.drawImage(bullFire, bullX, bullY, 150, 100); // Dibuja toro en movimiento
+}
+  // Dibujar al enemigo si está vivo o explotando
+if (enemy.alive) {
+  ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
+} else if (enemy.exploding && enemy.explosionTimer > 0 && explosionLoaded) {
+  console.log("🔥 DIBUJANDO EXPLOSION"); // Confirmación en consola
+  const explosionX = enemy.x + (enemy.width / 2) - 50;
+  const explosionY = enemy.y + (enemy.height / 2) - 50;
+  ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
+
+  // Prueba visual para saber si se dibuja algo
+  ctx.fillStyle = 'red';
+  ctx.fillRect(explosionX + 10, explosionY + 10, 10, 10);
+}
+
+  // Bucle del juego
+function gameLoop() {
+  const speed = 5;
+  const gravity = 1.2;
+  const brettWidth = canvas.width * 0.1;
+  const brettHeight = brettWidth;
+
+  // Movimiento horizontal
+  if (moveLeft) brettX -= speed;
+  if (moveRight) brettX += speed;
+
+  // Limitar dentro de la pantalla
+  brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
+
+  // Aplicar gravedad
+  velocityY += gravity;
+  brettY += velocityY;
+
+  // Verificar colisión con plataformas
+  let onPlatform = false;
+
+  for (const p of platforms) {
+    if (p.type === 'log') {
+  if (p.triggered) {
+    p.timer++;
+
+    if (p.timer > 120 && p.timer <= 360) {
+      continue; // tronco está oculto (ya pasaron 2s pero no han pasado 6s)
     }
 
-    invokeButton.onclick = () => {
-      if (!bullActive) {
-        bullActive = true;
-        bullX = -200;
-        console.log('TORO INVOCADO');
-      }
-    };
+    if (p.timer > 360) {
+      // Ya pasaron 6 segundos desde que Brett lo pisó, se reinicia
+      p.triggered = false;
+      p.timer = 0;
+    }
+  }
+}
+    
+    const footY = brettY + brettHeight;
+    const onTop =
+      brettX + brettWidth > p.x &&
+      brettX < p.x + p.width &&
+      footY >= p.y &&
+      footY <= p.y + 20 &&
+      velocityY >= 0;
 
-    const platforms = [
-      { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
-      { x: 350, y: 300, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' },
-      { x: 520, y: 280, width: 160, height: 30, img: 'log.png', type: 'log', triggered: false, timer: 0 },
-      { x: 700, y: 200, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' }
-    ];
+    if (onTop) {
+      brettY = p.y - brettHeight;
+      velocityY = 0;
+      isJumping = false;
+      onPlatform = true;
 
-    const platformImages = {};
-    for (const p of platforms) {
-      if (!platformImages[p.img]) {
-        platformImages[p.img] = new Image();
-        platformImages[p.img].src = p.img;
+      if (p.type === 'log' && !p.triggered) {
+        p.triggered = true;
+        p.timer = 0;
       }
     }
+  }
 
-    let currentSprite = brettIdle;
-    let brettX = 400, brettY = 380, velocityY = 0;
-    let isJumping = false, isFalling = false;
-    let moveLeft = false, moveRight = false;
-    let gameStarted = false;
+  // Verificar si toca el suelo
+  const groundY = canvas.height - brettHeight - 20;
+  if (brettY >= groundY) {
+    brettY = groundY;
+    velocityY = 0;
+    isJumping = false;
+    onPlatform = true;
+  }
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      if (gameStarted) drawGame();
+  // Si no está en el suelo ni en plataforma, está cayendo
+  if (!onPlatform) {
+    isJumping = true;
+  }
+  
+// Detectar recolección de monedas
+for (const c of coins) {
+  if (!c.collected) {
+    const brettWidth = canvas.width * 0.1;
+    const brettHeight = brettWidth;
+    const brettRight = brettX + brettWidth;
+    const brettBottom = brettY + brettHeight;
+
+    const colX = brettRight > c.x && brettX < c.x + 30;
+    const colY = brettBottom > c.y && brettY < c.y + 30;
+
+    if (colX && colY) {
+      c.collected = true;
+      score += c.value;
     }
+  }
+}
+  // Movimiento del enemigo (si está vivo)
+if (enemy.alive) {
+  enemy.x += enemy.speed * enemy.direction;
 
-    window.addEventListener('resize', resizeCanvas);
+  // Cambia de dirección si llega a los bordes definidos
+  if (enemy.x + enemy.width >= canvas.width) {
+    enemy.direction = -1;
+  }
+  if (enemy.x <= 400) {
+    enemy.direction = 1;
+  }
+}
 
-    startButton.onclick = () => {
-      gameStarted = true;
-      startButton.style.display = 'none';
-      resizeCanvas();
-      gameLoop();
-    };
+  if (bullActive) {
+  bullX += bullSpeed; // Mueve el toro hacia la derecha
+  // Verificar colisión entre toro y enemigo
+  if (enemy.alive) {
+    const bullY = canvas.height - 140;
+    const bullWidth = 150;
+    const bullHeight = 100;
 
-    function drawGame() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+    const bullRight = bullX + bullWidth;
+    const bullBottom = bullY + bullHeight;
 
-      for (const p of platforms) {
-        if (p.type === 'log' && p.triggered && p.timer > 120) continue;
-        ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
-      }
+    const enemyRight = enemy.x + enemy.width;
+    const enemyBottom = enemy.y + enemy.height;
 
-      for (const c of coins) {
-        if (!c.collected) {
-          ctx.drawImage(coinImages[c.type], c.x, c.y, 30, 30);
-        }
-      }
+    const colX = bullRight > enemy.x && bullX < enemyRight;
+    const colY = bullBottom > enemy.y && bullY < enemyBottom;
 
-      ctx.fillStyle = 'white';
-      ctx.font = '24px Arial';
-      ctx.fillText(`Score: ${score}`, 20, 40);
-
-      const brettWidth = canvas.width * 0.1;
-      const brettHeight = brettWidth;
-
-      if (isJumping) {
-        currentSprite = velocityY < 0 ? brettJump : brettFall;
-      } else if (moveLeft || moveRight) {
-        currentSprite = brettWalk;
-      } else {
-        currentSprite = brettIdle;
-      }
-
-      ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
-
-      if (bullActive) {
-        const bullY = canvas.height - 140;
-        ctx.drawImage(bullFire, bullX, bullY, 150, 100);
-      }
-
-      if (enemy.alive) {
-        ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
-      } else if (enemy.exploding && enemy.explosionTimer > 0) {
-        console.log("🔥 DIBUJANDO EXPLOSION");
-        const explosionX = enemy.x + (enemy.width / 2) - 50;
-        const explosionY = enemy.y + (enemy.height / 2) - 50;
-        ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
-        ctx.fillStyle = 'red';
-        ctx.fillRect(explosionX + 10, explosionY + 10, 10, 10);
-      }
+    if (colX && colY && !enemy.exploding) {
+  enemy.exploding = true;             // Bandera para mostrar explosión
+  enemy.explosionTimer = 90;          // Tiempo de explosión en frames
+  enemy.alive = false;                // Detiene al enemigo
+  console.log("¡Enemigo destruido por el toro!");
+}
     }
+  }
 
-    function gameLoop() {
-      const speed = 5;
-      const gravity = 1.2;
-      const brettWidth = canvas.width * 0.1;
-      const brettHeight = brettWidth;
+  // Si ya salió por el borde derecho, lo desactiva y reinicia su posición
+  if (bullX > canvas.width) {
+    bullActive = false;
+    bullX = -200;
+  }
+  // Reducir temporizador de explosión
+if (enemy.exploding && enemy.explosionTimer > 0) {
+  enemy.explosionTimer--;
+}
 
-      if (moveLeft) brettX -= speed;
-      if (moveRight) brettX += speed;
-      brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
-      velocityY += gravity;
-      brettY += velocityY;
+}
 
-      let onPlatform = false;
+checkInvokeButton(); // Verifica si el botón debe mostrarse
+  drawGame();
+  requestAnimationFrame(gameLoop);
+}
 
-      for (const p of platforms) {
-        if (p.type === 'log') {
-          if (p.triggered) {
-            p.timer++;
-            if (p.timer > 120 && p.timer <= 360) continue;
-            if (p.timer > 360) {
-              p.triggered = false;
-              p.timer = 0;
-            }
-          }
-        }
+  // Teclado presionado
+  window.addEventListener('keydown', (e) => {
+    if (!gameStarted) return;
 
-        const footY = brettY + brettHeight;
-        const onTop = brettX + brettWidth > p.x && brettX < p.x + p.width && footY >= p.y && footY <= p.y + 20 && velocityY >= 0;
-
-        if (onTop) {
-          brettY = p.y - brettHeight;
-          velocityY = 0;
-          isJumping = false;
-          onPlatform = true;
-          if (p.type === 'log' && !p.triggered) {
-            p.triggered = true;
-            p.timer = 0;
-          }
-        }
-      }
-
-      const groundY = canvas.height - brettHeight - 20;
-      if (brettY >= groundY) {
-        brettY = groundY;
-        velocityY = 0;
-        isJumping = false;
-        onPlatform = true;
-      }
-
-      if (!onPlatform) isJumping = true;
-
-      for (const c of coins) {
-        if (!c.collected) {
-          const brettRight = brettX + brettWidth;
-          const brettBottom = brettY + brettHeight;
-          const colX = brettRight > c.x && brettX < c.x + 30;
-          const colY = brettBottom > c.y && brettY < c.y + 30;
-
-          if (colX && colY) {
-            c.collected = true;
-            score += c.value;
-          }
-        }
-      }
-
-      if (enemy.alive) {
-        enemy.x += enemy.speed * enemy.direction;
-        if (enemy.x + enemy.width >= canvas.width) enemy.direction = -1;
-        if (enemy.x <= 400) enemy.direction = 1;
-      }
-
-      if (bullActive) {
-        bullX += bullSpeed;
-        if (enemy.alive) {
-          const bullY = canvas.height - 140;
-          const bullWidth = 150;
-          const bullHeight = 100;
-
-          const bullRight = bullX + bullWidth;
-          const bullBottom = bullY + bullHeight;
-
-          const enemyRight = enemy.x + enemy.width;
-          const enemyBottom = enemy.y + enemy.height;
-
-          const colX = bullRight > enemy.x && bullX < enemyRight;
-          const colY = bullBottom > enemy.y && bullY < enemyBottom;
-
-          if (colX && colY && !enemy.exploding) {
-            enemy.exploding = true;
-            enemy.explosionTimer = 90;
-            enemy.alive = false;
-            console.log("¡Enemigo destruido por el toro!");
-          }
-        }
-      }
-
-      if (bullX > canvas.width) {
-        bullActive = false;
-        bullX = -200;
-      }
-
-      if (enemy.exploding && enemy.explosionTimer > 0) {
-        enemy.explosionTimer--;
-      }
-
-      checkInvokeButton();
-      drawGame();
-      requestAnimationFrame(gameLoop);
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+      moveLeft = true;
     }
+    if (e.key === 'ArrowRight' || e.key === 'd') {
+      moveRight = true;
+    }
+    if ((e.key === ' ' || e.key === 'w') && !isJumping) {
+      isJumping = true;
+      velocityY = -18; // Fuerza de salto
+    }
+  });
 
-    window.addEventListener('keydown', (e) => {
-      if (!gameStarted) return;
-      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
-      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
-      if ((e.key === ' ' || e.key === 'w') && !isJumping) {
-        isJumping = true;
-        velocityY = -18;
-      }
-    });
+  // Teclado liberado
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
+      moveLeft = false;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'd') {
+      moveRight = false;
+    }
+  });
+   // Al presionar la tecla "E", dibuja la explosión manualmente para prueba
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'e') {
+    ctx.drawImage(explosionImg, 300, 300, 100, 100); // Dibuja la explosión en posición fija
+    console.log('Explosión manual dibujada');
+  }
+});
 
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
-      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'e') {
-        ctx.drawImage(explosionImg, 300, 300, 100, 100);
-        console.log('Explosión manual dibujada');
-      }
-    });
-  </script>
+</script>
 </body>
 </html>
