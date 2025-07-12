@@ -73,6 +73,8 @@ const enemy = {
   speed: 2.5,
   direction: 1,        // 1 = derecha, -1 = izquierda
   alive: true,
+  exploding: false,
+explosionTimer: 0,
   img: new Image()
 };
 enemy.img.src = 'enemy1.png';
@@ -212,6 +214,11 @@ ctx.fillText(`Score: ${score}`, 20, 40);
      // Dibujar al enemigo si está vivo
 if (enemy.alive) {
   ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
+} else if (enemy.exploding && enemy.explosionTimer > 0) {
+  const explosionX = enemy.x + (enemy.width / 2) - 50;
+  const explosionY = enemy.y + (enemy.height / 2) - 50;
+  ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
+}
 }
    }
   // Bucle del juego
@@ -334,9 +341,12 @@ if (enemy.alive) {
     const colX = bullRight > enemy.x && bullX < enemyRight;
     const colY = bullBottom > enemy.y && bullY < enemyBottom;
 
-    if (colX && colY) {
-      enemy.alive = false; // Elimina al enemigo
-      console.log("¡Enemigo destruido por el toro!");
+    if (colX && colY && !enemy.exploding) {
+  enemy.exploding = true;             // Bandera para mostrar explosión
+  enemy.explosionTimer = 30;          // Tiempo de explosión en frames
+  enemy.alive = false;                // Detiene al enemigo
+  console.log("¡Enemigo destruido por el toro!");
+}
     }
   }
 
@@ -345,6 +355,11 @@ if (enemy.alive) {
     bullActive = false;
     bullX = -200;
   }
+  // Reducir temporizador de explosión
+if (enemy.exploding && enemy.explosionTimer > 0) {
+  enemy.explosionTimer--;
+}
+
     // Movimiento del enemigo
 if (enemy.alive) {
   enemy.x += enemy.speed * enemy.direction;
