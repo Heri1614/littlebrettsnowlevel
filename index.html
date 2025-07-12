@@ -167,6 +167,8 @@ for (const p of platforms) {
   startButton.onclick = () => {
     gameStarted = true;
     startButton.style.display = 'none';
+        canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     resizeCanvas();
     gameLoop(); // comienza la animación
   };
@@ -354,6 +356,7 @@ if (enemy.alive) {
   enemy.explosionTimer = 90;          // Tiempo de explosión en frames
   enemy.alive = false;                // Detiene al enemigo
   console.log("¡Enemigo destruido por el toro!");
+      drawGame();
 }
     }
   }
@@ -400,6 +403,14 @@ checkInvokeButton(); // Verifica si el botón debe mostrarse
       moveRight = false;
     }
   });
+   // Al presionar la tecla "E", dibuja la explosión manualmente para prueba
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'e') {
+    ctx.drawImage(explosionImg, 300, 300, 100, 100); // Dibuja la explosión en posición fija
+    console.log('Explosión manual dibujada');
+  }
+});
+
 </script>
 </body>
 </html>
