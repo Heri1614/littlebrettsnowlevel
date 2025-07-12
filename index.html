@@ -215,14 +215,20 @@ ctx.fillText(`Score: ${score}`, 20, 40);
   const bullY = canvas.height - 140; // Altura del toro (cerca del suelo)
   ctx.drawImage(bullFire, bullX, bullY, 150, 100); // Dibuja toro en movimiento
 }
-     // Dibujar al enemigo si está vivo
+  // Dibujar al enemigo si está vivo o explotando
 if (enemy.alive) {
   ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
 } else if (enemy.exploding && enemy.explosionTimer > 0 && explosionLoaded) {
+  console.log("🔥 DIBUJANDO EXPLOSION"); // Confirmación en consola
   const explosionX = enemy.x + (enemy.width / 2) - 50;
   const explosionY = enemy.y + (enemy.height / 2) - 50;
   ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
-   }
+
+  // Prueba visual para saber si se dibuja algo
+  ctx.fillStyle = 'red';
+  ctx.fillRect(explosionX + 10, explosionY + 10, 10, 10);
+}
+
   // Bucle del juego
 function gameLoop() {
   const speed = 5;
@@ -360,16 +366,6 @@ if (enemy.alive) {
   // Reducir temporizador de explosión
 if (enemy.exploding && enemy.explosionTimer > 0) {
   enemy.explosionTimer--;
-}
-
-    // Movimiento del enemigo
-if (enemy.alive) {
-  enemy.x += enemy.speed * enemy.direction;
-
-  // Si llega al borde derecho de la pantalla o al punto inicial (x = 400), cambia de dirección
-  if (enemy.x + enemy.width > canvas.width || enemy.x < 400) {
-    enemy.direction *= -1; // Invierte dirección
-  }
 }
 
 }
