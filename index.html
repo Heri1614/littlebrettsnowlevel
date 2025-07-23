@@ -85,16 +85,17 @@
     const invokeButton = document.getElementById('invokeButton');
 
     function checkInvokeButton() {
-      invokeButton.style.display = score >= 100 ? 'block' : 'none';
-    }
+  invokeButton.style.display = bullCharges > 0 ? 'block' : 'none';
+}
 
     invokeButton.onclick = () => {
-      if (!bullActive) {
-        bullActive = true;
-        bullX = -200;
-        console.log('TORO INVOCADO');
-      }
-    };
+  if (!bullActive && bullCharges > 0) {
+    bullActive = true;
+    bullX = -200;
+    bullCharges--; // Gastamos una carga
+    console.log(`🐂 Toro invocado. Cargas restantes: ${bullCharges}`);
+  }
+};
 
     const platforms = [
       { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
@@ -239,10 +240,21 @@
           const colX = brettRight > c.x && brettX < c.x + 30;
           const colY = brettBottom > c.y && brettY < c.y + 30;
 
-          if (colX && colY) {
-            c.collected = true;
-            score += c.value;
-          }
+         if (colX && colY) {
+  c.collected = true;
+  const previousScore = score;
+  score += c.value;
+
+  // Verificar si se alcanzó una nueva carga del toro
+  const previousCharges = Math.floor(previousScore / 100);
+  const newCharges = Math.floor(score / 100);
+  const gainedCharges = newCharges - previousCharges;
+
+  if (gainedCharges > 0) {
+    bullCharges += gainedCharges;
+    console.log(`🔥 Toro recargado +${gainedCharges} (total: ${bullCharges})`);
+  }
+}
         }
       }
 
