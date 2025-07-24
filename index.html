@@ -136,13 +136,41 @@ for (let i = 0; i < platformCount; i++) {
   if (y > 450) y = 450;
 }
 
-    const platformImages = {};
-    for (const p of platforms) {
-      if (!platformImages[p.img]) {
-        platformImages[p.img] = new Image();
-        platformImages[p.img].src = p.img;
-      }
-    }
+    const platforms = [];
+const platformCount = 50;
+let x = 200;
+let y = 400;
+let direction = -1;
+
+for (let i = 0; i < platformCount; i++) {
+  const isLog = i % 5 === 0; // cada 5 plataformas una será log
+  platforms.push({
+    x: x,
+    y: y,
+    width: 120,
+    height: 20,
+    img: isLog ? "log.png" : "Platform_small.png",
+    type: isLog ? "log" : "normal",
+    triggered: false,
+    timer: 0
+  });
+
+  x += 130; // avanza horizontalmente
+  y += direction * 40; // sube o baja
+
+  if (i % 4 === 0) direction *= -1; // zig-zag
+
+  if (y < 200) y = 200;
+  if (y > 450) y = 450;
+}
+
+const platformImages = {};
+for (const p of platforms) {
+  if (!platformImages[p.img]) {
+    platformImages[p.img] = new Image();
+    platformImages[p.img].src = p.img;
+  }
+}
 
     let currentSprite = brettIdle;
     let brettX = 400, brettY = 380, velocityY = 0;
