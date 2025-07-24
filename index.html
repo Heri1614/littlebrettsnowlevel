@@ -145,6 +145,10 @@ let lives = 5;
     let moveLeft = false, moveRight = false;
     let gameStarted = false;
 
+    let isInvincible = false;
+let invincibilityTimer = 0;
+let gameOver = false;
+
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -197,7 +201,9 @@ for (let i = 0; i < 5; i++) {
         currentSprite = brettIdle;
       }
 
-      ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+    if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
+  ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+}
 
       if (bullActive) {
         const bullY = canvas.height - 140;
@@ -294,6 +300,28 @@ for (let i = 0; i < 5; i++) {
         if (enemy.x <= 400) enemy.direction = 1;
       }
 
+      // Si colisiona con el enemigo y no es invencible
+if (enemy.alive && !isInvincible && !gameOver) {
+  const brettRight = brettX + brettWidth;
+  const brettBottom = brettY + brettHeight;
+  const enemyRight = enemy.x + enemy.width;
+  const enemyBottom = enemy.y + enemy.height;
+
+  const colX = brettRight > enemy.x && brettX < enemyRight;
+  const colY = brettBottom > enemy.y && brettY < enemyBottom;
+
+  if (colX && colY) {
+    lives--;
+    isInvincible = true;
+    invincibilityTimer = 120; // 2 segundos de inmunidad
+
+    if (lives <= 0) {
+      gameOver = true;
+      console.log("¡GAME OVER!");
+    }
+  }
+}
+
       if (bullActive) {
         bullX += bullSpeed;
         if (enemy.alive) {
@@ -327,6 +355,14 @@ for (let i = 0; i < 5; i++) {
       if (enemy.exploding && enemy.explosionTimer > 0) {
         enemy.explosionTimer--;
       }
+      
+      if (isInvincible) {
+  invincibilityTimer--;
+  if (invincibilityTimer <= 0) {
+    isInvincible = false;
+  }
+}
+
 
       checkInvokeButton();
       drawGame();
