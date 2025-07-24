@@ -63,11 +63,20 @@
       startButton.disabled = false;  // ✅ Activar botón cuando la imagen esté cargada
     };
 
-    const coins = [
-      { x: 220, y: 360, type: 'coin', value: 20, collected: false },
-      { x: 370, y: 260, type: 'eth', value: 30, collected: false },
-      { x: 720, y: 160, type: 'btc', value: 50, collected: false }
-    ];
+   const coins = [
+  { "x": 245, "y": 370, "type": "btc", "value": 50, "collected": false },
+  { "x": 345, "y": 370, "type": "eth", "value": 30, "collected": false },
+  { "x": 445, "y": 370, "type": "coin", "value": 20, "collected": false },
+  { "x": 545, "y": 370, "type": "btc", "value": 50, "collected": false },
+  { "x": 645, "y": 370, "type": "eth", "value": 30, "collected": false },
+  { "x": 745, "y": 370, "type": "coin", "value": 20, "collected": false },
+  { "x": 845, "y": 370, "type": "btc", "value": 50, "collected": false },
+  { "x": 945, "y": 370, "type": "eth", "value": 30, "collected": false },
+  { "x": 1045, "y": 370, "type": "coin", "value": 20, "collected": false },
+  { "x": 1145, "y": 370, "type": "btc", "value": 50, "collected": false },
+  // ... agrega los siguientes hasta completar 50
+];
+
 
     const coinImages = {
       coin: new Image(),
@@ -99,11 +108,32 @@
 };
 
     const platforms = [
-      { x: 200, y: 400, width: 120, height: 20, img: 'Platform_small.png', type: 'normal' },
-      { x: 350, y: 300, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' },
-      { x: 520, y: 280, width: 160, height: 30, img: 'log.png', type: 'log', triggered: false, timer: 0 },
-      { x: 700, y: 200, width: 120, height: 40, img: 'Platform_tall.png', type: 'normal' }
-    ];
+  { "x": 200, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 300, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 400, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 500, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 600, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 700, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 800, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 900, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 1000, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 1100, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+
+  { "x": 200, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 300, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 400, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 500, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 600, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 700, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 800, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 900, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 1000, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  { "x": 1100, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+
+  { "x": 200, "y": 340, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+  // ... agrega los siguientes hasta completar 50
+];
+
 
     const platformImages = {};
     for (const p of platforms) {
