@@ -57,14 +57,19 @@
     explosionImg.src = 'explosion.png';
     explosionImg.onload = () => { startButton.disabled = false; };
 
-    const coins = [
-      { x: 215, y: 370, type: "btc", value: 50, collected: false },
-      { x: 250, y: 370, type: "eth", value: 30, collected: false },
-      { x: 285, y: 370, type: "coin", value: 20, collected: false },
-      { x: 345, y: 330, type: "btc", value: 50, collected: false },
-      { x: 380, y: 330, type: "eth", value: 30, collected: false },
-      // ... puedes agregar más si lo deseas
-    ];
+   const coins = platforms.map((p, index) => {
+  const types = ['coin', 'eth', 'btc'];
+  const type = types[index % types.length];
+  const value = type === 'btc' ? 50 : type === 'eth' ? 30 : 20;
+
+  return {
+    x: p.x + (p.width / 2) - 15,
+    y: p.y - 30,
+    type: type,
+    value: value,
+    collected: false
+  };
+});
 
     const coinImages = {
       coin: new Image(),
