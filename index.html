@@ -107,33 +107,34 @@
   }
 };
 
-    const platforms = [
-  { "x": 200, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 300, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 400, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 500, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 600, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 700, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 800, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 900, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 1000, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 1100, "y": 400, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+   const platforms = [];
+const platformCount = 50;
+let x = 200;
+let y = 400;
+let direction = -1;
 
-  { "x": 200, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 300, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 400, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 500, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 600, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 700, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 800, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 900, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 1000, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  { "x": 1100, "y": 370, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
+for (let i = 0; i < platformCount; i++) {
+  platforms.push({
+    x: x,
+    y: y,
+    width: 120,
+    height: 20,
+    img: "Platform_small.png",
+    type: "normal"
+  });
 
-  { "x": 200, "y": 340, "width": 120, "height": 20, "img": "Platform_small.png", "type": "normal" },
-  // ... agrega los siguientes hasta completar 50
-];
+  x += 130; // avanzamos horizontalmente
+  y += direction * 40; // sube o baja cada vez
 
+  // Cambia de dirección cada 4 plataformas
+  if (i % 4 === 0) {
+    direction *= -1;
+  }
+
+  // límite vertical razonable (no demasiado arriba ni abajo)
+  if (y < 200) y = 200;
+  if (y > 450) y = 450;
+}
 
     const platformImages = {};
     for (const p of platforms) {
