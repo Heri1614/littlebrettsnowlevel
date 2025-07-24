@@ -25,13 +25,12 @@
       max-width: 300px;
       z-index: 10;
       cursor: pointer;
-      display: none;
     }
   </style>
 </head>
 <body>
 
-  <img id="startButton" src="btn_start.png" alt="Start">
+  <img id="startButton" src="btn_start.png" alt="Start" disabled>
   <canvas id="gameCanvas"></canvas>
   <img id="invokeButton" src="invoke_btn.png" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 70px; cursor: pointer; z-index: 20;">
 
@@ -56,23 +55,15 @@
 
     const explosionImg = new Image();
     explosionImg.src = 'explosion.png';
-    let explosionLoaded = false;
-    explosionImg.onload = () => {
-      explosionLoaded = true;
-      startButton.style.display = 'block';  // ✅ Mostrar botón cuando todo cargue
-    };
+    explosionImg.onload = () => { startButton.disabled = false; };
 
     const coins = [
-      { "x": 245, "y": 370, "type": "btc", "value": 50, "collected": false },
-      { "x": 345, "y": 370, "type": "eth", "value": 30, "collected": false },
-      { "x": 445, "y": 370, "type": "coin", "value": 20, "collected": false },
-      { "x": 545, "y": 370, "type": "btc", "value": 50, "collected": false },
-      { "x": 645, "y": 370, "type": "eth", "value": 30, "collected": false },
-      { "x": 745, "y": 370, "type": "coin", "value": 20, "collected": false },
-      { "x": 845, "y": 370, "type": "btc", "value": 50, "collected": false },
-      { "x": 945, "y": 370, "type": "eth", "value": 30, "collected": false },
-      { "x": 1045, "y": 370, "type": "coin", "value": 20, "collected": false },
-      { "x": 1145, "y": 370, "type": "btc", "value": 50, "collected": false },
+      { x: 215, y: 370, type: "btc", value: 50, collected: false },
+      { x: 250, y: 370, type: "eth", value: 30, collected: false },
+      { x: 285, y: 370, type: "coin", value: 20, collected: false },
+      { x: 345, y: 330, type: "btc", value: 50, collected: false },
+      { x: 380, y: 330, type: "eth", value: 30, collected: false },
+      // ... puedes agregar más si lo deseas
     ];
 
     const coinImages = {
@@ -100,16 +91,13 @@
         bullActive = true;
         bullX = -200;
         bullCharges--;
-        console.log(`🐂 Toro invocado. Cargas restantes: ${bullCharges}`);
+        console.log("Toro invocado. Cargas restantes: " + bullCharges);
       }
     };
 
-    // ✅ Plataforma en zig-zag con troncos
     const platforms = [];
     const platformCount = 50;
-    let x = 200;
-    let y = 400;
-    let direction = -1;
+    let x = 200, y = 400, direction = -1;
 
     for (let i = 0; i < platformCount; i++) {
       const isLog = i % 5 === 0;
@@ -126,7 +114,6 @@
 
       x += 130;
       y += direction * 40;
-
       if (i % 4 === 0) direction *= -1;
       if (y < 200) y = 200;
       if (y > 450) y = 450;
@@ -161,7 +148,186 @@
       gameLoop();
     };
 
-    // ... el resto del script sigue igual (drawGame, gameLoop, teclas, etc.)
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+
+      for (const p of platforms) {
+        if (p.type === 'log' && p.triggered && p.timer > 120) continue;
+        ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
+      }
+
+      for (const c of coins) {
+        if (!c.collected) {
+          ctx.drawImage(coinImages[c.type], c.x, c.y, 30, 30);
+        }
+      }
+
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.fillText(`Score: ${score}`, 20, 40);
+
+      const brettWidth = canvas.width * 0.1;
+      const brettHeight = brettWidth;
+
+      if (isJumping) {
+        currentSprite = velocityY < 0 ? brettJump : brettFall;
+      } else if (moveLeft || moveRight) {
+        currentSprite = brettWalk;
+      } else {
+        currentSprite = brettIdle;
+      }
+
+      ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
+
+      if (bullActive) {
+        const bullY = canvas.height - 140;
+        ctx.drawImage(bullFire, bullX, bullY, 150, 100);
+      }
+
+      if (enemy.alive) {
+        ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
+      } else if (enemy.exploding && enemy.explosionTimer > 0) {
+        const explosionX = enemy.x + (enemy.width / 2) - 50;
+        const explosionY = enemy.y + (enemy.height / 2) - 50;
+        ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
+      }
+    }
+
+    function gameLoop() {
+      const speed = 5;
+      const gravity = 1.2;
+      const brettWidth = canvas.width * 0.1;
+      const brettHeight = brettWidth;
+
+      if (moveLeft) brettX -= speed;
+      if (moveRight) brettX += speed;
+      brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
+      velocityY += gravity;
+      brettY += velocityY;
+
+      let onPlatform = false;
+
+      for (const p of platforms) {
+        if (p.type === 'log') {
+          if (p.triggered) {
+            p.timer++;
+            if (p.timer > 120 && p.timer <= 360) continue;
+            if (p.timer > 360) {
+              p.triggered = false;
+              p.timer = 0;
+            }
+          }
+        }
+
+        const footY = brettY + brettHeight;
+        const onTop = brettX + brettWidth > p.x && brettX < p.x + p.width && footY >= p.y && footY <= p.y + 20 && velocityY >= 0;
+
+        if (onTop) {
+          brettY = p.y - brettHeight;
+          velocityY = 0;
+          isJumping = false;
+          onPlatform = true;
+          if (p.type === 'log' && !p.triggered) {
+            p.triggered = true;
+            p.timer = 0;
+          }
+        }
+      }
+
+      const groundY = canvas.height - brettHeight - 20;
+      if (brettY >= groundY) {
+        brettY = groundY;
+        velocityY = 0;
+        isJumping = false;
+        onPlatform = true;
+      }
+
+      if (!onPlatform) isJumping = true;
+
+      for (const c of coins) {
+        if (!c.collected) {
+          const brettRight = brettX + brettWidth;
+          const brettBottom = brettY + brettHeight;
+          const colX = brettRight > c.x && brettX < c.x + 30;
+          const colY = brettBottom > c.y && brettY < c.y + 30;
+
+          if (colX && colY) {
+            c.collected = true;
+            const previousScore = score;
+            score += c.value;
+
+            const previousCharges = Math.floor(previousScore / 100);
+            const newCharges = Math.floor(score / 100);
+            const gainedCharges = newCharges - previousCharges;
+
+            if (gainedCharges > 0) {
+              bullCharges += gainedCharges;
+              console.log("Toro recargado +" + gainedCharges + " (total: " + bullCharges + ")");
+            }
+          }
+        }
+      }
+
+      if (enemy.alive) {
+        enemy.x += enemy.speed * enemy.direction;
+        if (enemy.x + enemy.width >= canvas.width) enemy.direction = -1;
+        if (enemy.x <= 400) enemy.direction = 1;
+      }
+
+      if (bullActive) {
+        bullX += bullSpeed;
+        if (enemy.alive) {
+          const bullY = canvas.height - 140;
+          const bullWidth = 150;
+          const bullHeight = 100;
+
+          const bullRight = bullX + bullWidth;
+          const bullBottom = bullY + bullHeight;
+
+          const enemyRight = enemy.x + enemy.width;
+          const enemyBottom = enemy.y + enemy.height;
+
+          const colX = bullRight > enemy.x && bullX < enemyRight;
+          const colY = bullBottom > enemy.y && bullY < enemyBottom;
+
+          if (colX && colY && !enemy.exploding) {
+            enemy.exploding = true;
+            enemy.explosionTimer = 90;
+            enemy.alive = false;
+            console.log("¡Enemigo destruido por el toro!");
+          }
+        }
+      }
+
+      if (bullX > canvas.width) {
+        bullActive = false;
+        bullX = -200;
+      }
+
+      if (enemy.exploding && enemy.explosionTimer > 0) {
+        enemy.explosionTimer--;
+      }
+
+      checkInvokeButton();
+      drawGame();
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!gameStarted) return;
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
+      if ((e.key === ' ' || e.key === 'w') && !isJumping) {
+        isJumping = true;
+        velocityY = -18;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
+    });
 
   </script>
 </body>
