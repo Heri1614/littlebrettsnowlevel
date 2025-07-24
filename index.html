@@ -57,19 +57,45 @@
     explosionImg.src = 'explosion.png';
     explosionImg.onload = () => { startButton.disabled = false; };
 
-   const coins = platforms.map((p, index) => {
-  const types = ['coin', 'eth', 'btc'];
-  const type = types[index % types.length];
-  const value = type === 'btc' ? 50 : type === 'eth' ? 30 : 20;
+    const platforms = [];
+    const platformCount = 50;
+    let x = 200, y = 400, direction = -1;
 
-  return {
-    x: p.x + (p.width / 2) - 15,
-    y: p.y - 30,
-    type: type,
-    value: value,
-    collected: false
-  };
-});
+    for (let i = 0; i < platformCount; i++) {
+      const isLog = i % 5 === 0;
+      platforms.push({
+        x: x,
+        y: y,
+        width: 120,
+        height: 20,
+        img: isLog ? "log.png" : "Platform_small.png",
+        type: isLog ? "log" : "normal",
+        triggered: false,
+        timer: 0
+      });
+
+      x += 130;
+      y += direction * 40;
+      if (i % 4 === 0) direction *= -1;
+      if (y < 200) y = 200;
+      if (y > 450) y = 450;
+    }
+
+    const coins = [];
+    const types = ['coin', 'eth', 'btc'];
+    for (let i = 0; i < platforms.length; i++) {
+      const p = platforms[i];
+      const type = types[i % types.length];
+      const value = type === 'btc' ? 50 : type === 'eth' ? 30 : 20;
+
+      coins.push({
+        x: p.x + (p.width / 2) - 15,
+        y: p.y - 30,
+        type: type,
+        value: value,
+        collected: false
+      });
+    }
 
     const coinImages = {
       coin: new Image(),
@@ -99,30 +125,6 @@
         console.log("Toro invocado. Cargas restantes: " + bullCharges);
       }
     };
-
-    const platforms = [];
-    const platformCount = 50;
-    let x = 200, y = 400, direction = -1;
-
-    for (let i = 0; i < platformCount; i++) {
-      const isLog = i % 5 === 0;
-      platforms.push({
-        x: x,
-        y: y,
-        width: 120,
-        height: 20,
-        img: isLog ? "log.png" : "Platform_small.png",
-        type: isLog ? "log" : "normal",
-        triggered: false,
-        timer: 0
-      });
-
-      x += 130;
-      y += direction * 40;
-      if (i % 4 === 0) direction *= -1;
-      if (y < 200) y = 200;
-      if (y > 450) y = 450;
-    }
 
     const platformImages = {};
     for (const p of platforms) {
