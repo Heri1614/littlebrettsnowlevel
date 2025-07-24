@@ -57,6 +57,11 @@
     explosionImg.src = 'explosion.png';
     explosionImg.onload = () => { startButton.disabled = false; };
 
+    // Corazones (vida)
+const heartFull = new Image(); heartFull.src = 'heart_full.png';
+const heartEmpty = new Image(); heartEmpty.src = 'heart_empty.png';
+let lives = 5;
+
     const platforms = [];
     const platformCount = 50;
     let x = 200, y = 400, direction = -1;
@@ -173,6 +178,13 @@
       ctx.fillStyle = 'white';
       ctx.font = '24px Arial';
       ctx.fillText(`Score: ${score}`, 20, 40);
+
+      // Dibujar corazones en la esquina superior derecha
+const heartSize = 30;
+for (let i = 0; i < 5; i++) {
+  const img = i < lives ? heartFull : heartEmpty;
+  ctx.drawImage(img, canvas.width - (i + 1) * (heartSize + 10), 10, heartSize, heartSize);
+}
 
       const brettWidth = canvas.width * 0.1;
       const brettHeight = brettWidth;
