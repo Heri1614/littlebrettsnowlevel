@@ -57,6 +57,11 @@
     explosionImg.src = 'explosion.png';
     explosionImg.onload = () => { startButton.disabled = false; };
 
+    const brettDown = new Image(); brettDown.src = 'brett_down.png';
+const gameOverImg = new Image(); gameOverImg.src = 'gameover.png';
+const retryBtn = new Image(); retryBtn.src = 'retry_btn.png';
+
+
     // Corazones (vida)
 const heartFull = new Image(); heartFull.src = 'heart_full.png';
 const heartEmpty = new Image(); heartEmpty.src = 'heart_empty.png';
@@ -116,6 +121,13 @@ let lives = 5;
     let bullX = -200;
     let bullSpeed = 15;
     let bullCharges = 0;
+
+    let lives = 5;
+let invincible = false;
+let invincibleTimer = 0;
+let isDead = false;
+let showRetry = false;
+
     const invokeButton = document.getElementById('invokeButton');
 
     function checkInvokeButton() {
@@ -192,6 +204,12 @@ for (let i = 0; i < 5; i++) {
 
       const brettWidth = canvas.width * 0.1;
       const brettHeight = brettWidth;
+
+      const gameOverImg = new Image();
+gameOverImg.src = 'gameover.png';
+
+const retryButtonImg = new Image();
+retryButtonImg.src = 'retry_btn.png';
 
       if (isJumping) {
         currentSprite = velocityY < 0 ? brettJump : brettFall;
@@ -316,10 +334,12 @@ if (enemy.alive && !isInvincible && !gameOver) {
     invincibilityTimer = 120; // 2 segundos de inmunidad
 
     if (lives <= 0) {
-      gameOver = true;
-      console.log("¡GAME OVER!");
-    }
-  }
+    gameOver = true;
+    currentSprite = brettDown;
+    setTimeout(() => {
+        showRetry = true;
+    }, 2000);
+}
 }
 
       if (bullActive) {
@@ -363,6 +383,12 @@ if (enemy.alive && !isInvincible && !gameOver) {
   }
 }
 
+if (isInvincible) {
+  invincibilityTimer--;
+  if (invincibilityTimer <= 0) {
+    isInvincible = false;
+  }
+}
 
       checkInvokeButton();
       drawGame();
@@ -383,6 +409,29 @@ if (enemy.alive && !isInvincible && !gameOver) {
       if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
       if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
     });
+
+      // Detectar clic en el botón de "Retry" cuando se muestra
+canvas.addEventListener('click', function(e) {
+  if (!showRetry) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  const retryButtonWidth = 200;
+  const retryButtonHeight = 80;
+  const retryButtonX = (canvas.width - retryButtonWidth) / 2;
+  const retryButtonY = (canvas.height - retryButtonHeight) / 2 + 100;
+
+  if (
+    clickX >= retryButtonX &&
+    clickX <= retryButtonX + retryButtonWidth &&
+    clickY >= retryButtonY &&
+    clickY <= retryButtonY + retryButtonHeight
+  ) {
+    location.reload(); // Reinicia el juego
+  }
+});
 
   </script>
 </body>
