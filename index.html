@@ -44,7 +44,30 @@
     const brettWalk = new Image(); brettWalk.src = 'brett_walk1.png';
     const brettJump = new Image(); brettJump.src = 'brett_jump.png';
     const brettFall = new Image(); brettFall.src = 'brett_fall.png';
+    const brettDown = new Image(); brettDown.src = 'brett_down.png';
+    const gameOverImg = new Image(); gameOverImg.src = 'gameover.png';
+    const retryBtn = new Image(); retryBtn.src = 'retry_btn.png';
     const bullFire = new Image(); bullFire.src = 'bull_fire.png';
+    const heartFull = new Image(); heartFull.src = 'heart_full.png';
+    const heartEmpty = new Image(); heartEmpty.src = 'heart_empty.png';
+
+    const explosionImg = new Image(); explosionImg.src = 'explosion.png';
+
+    const invokeButton = document.getElementById('invokeButton');
+
+    let score = 0;
+    let bullCharges = 0;
+    let bullActive = false;
+    let bullX = -200;
+    let bullSpeed = 15;
+    let gameStarted = false;
+    let gameOver = false;
+    let showRetry = false;
+
+    let brettX = 400, brettY = 380, velocityY = 0;
+    let isJumping = false, moveLeft = false, moveRight = false;
+    let isInvincible = false, invincibilityTimer = 0;
+    let lives = 5;
 
     const enemy = {
       x: 400, y: 460, width: 50, height: 60, speed: 2.5, direction: 1,
@@ -53,29 +76,14 @@
     };
     enemy.img.src = 'enemy1.png';
 
-    const explosionImg = new Image();
-    explosionImg.src = 'explosion.png';
-    explosionImg.onload = () => { startButton.disabled = false; };
-
-    const brettDown = new Image(); brettDown.src = 'brett_down.png';
-const gameOverImg = new Image(); gameOverImg.src = 'gameover.png';
-const retryBtn = new Image(); retryBtn.src = 'retry_btn.png';
-
-
-    // Corazones (vida)
-const heartFull = new Image(); heartFull.src = 'heart_full.png';
-const heartEmpty = new Image(); heartEmpty.src = 'heart_empty.png';
-let lives = 5;
-
     const platforms = [];
     const platformCount = 50;
-    let x = 200, y = 400, direction = -1;
-
+    let px = 200, py = 400, dir = -1;
     for (let i = 0; i < platformCount; i++) {
       const isLog = i % 5 === 0;
       platforms.push({
-        x: x,
-        y: y,
+        x: px,
+        y: py,
         width: 120,
         height: 20,
         img: isLog ? "log.png" : "Platform_small.png",
@@ -83,21 +91,27 @@ let lives = 5;
         triggered: false,
         timer: 0
       });
+      px += 130;
+      py += dir * 40;
+      if (i % 4 === 0) dir *= -1;
+      if (py < 200) py = 200;
+      if (py > 450) py = 450;
+    }
 
-      x += 130;
-      y += direction * 40;
-      if (i % 4 === 0) direction *= -1;
-      if (y < 200) y = 200;
-      if (y > 450) y = 450;
+    const platformImages = {};
+    for (const p of platforms) {
+      if (!platformImages[p.img]) {
+        platformImages[p.img] = new Image();
+        platformImages[p.img].src = p.img;
+      }
     }
 
     const coins = [];
-    const types = ['coin', 'eth', 'btc'];
+    const coinTypes = ['coin', 'eth', 'btc'];
     for (let i = 0; i < platforms.length; i++) {
       const p = platforms[i];
-      const type = types[i % types.length];
+      const type = coinTypes[i % coinTypes.length];
       const value = type === 'btc' ? 50 : type === 'eth' ? 30 : 20;
-
       coins.push({
         x: p.x + (p.width / 2) - 15,
         y: p.y - 30,
@@ -116,19 +130,19 @@ let lives = 5;
     coinImages.eth.src = 'eth.png';
     coinImages.btc.src = 'btc.png';
 
-    let score = 0;
-    let bullActive = false;
-    let bullX = -200;
-    let bullSpeed = 15;
-    let bullCharges = 0;
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (gameStarted) drawGame();
+    }
+    window.addEventListener('resize', resizeCanvas);
 
-    let lives = 5;
-let invincible = false;
-let invincibleTimer = 0;
-let isDead = false;
-let showRetry = false;
-
-    const invokeButton = document.getElementById('invokeButton');
+    startButton.onclick = () => {
+      gameStarted = true;
+      startButton.style.display = 'none';
+      resizeCanvas();
+      gameLoop();
+    };
 
     function checkInvokeButton() {
       invokeButton.style.display = bullCharges > 0 ? 'block' : 'none';
@@ -139,41 +153,7 @@ let showRetry = false;
         bullActive = true;
         bullX = -200;
         bullCharges--;
-        console.log("Toro invocado. Cargas restantes: " + bullCharges);
       }
-    };
-
-    const platformImages = {};
-    for (const p of platforms) {
-      if (!platformImages[p.img]) {
-        platformImages[p.img] = new Image();
-        platformImages[p.img].src = p.img;
-      }
-    }
-
-    let currentSprite = brettIdle;
-    let brettX = 400, brettY = 380, velocityY = 0;
-    let isJumping = false, isFalling = false;
-    let moveLeft = false, moveRight = false;
-    let gameStarted = false;
-
-    let isInvincible = false;
-let invincibilityTimer = 0;
-let gameOver = false;
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      if (gameStarted) drawGame();
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-
-    startButton.onclick = () => {
-      gameStarted = true;
-      startButton.style.display = 'none';
-      resizeCanvas();
-      gameLoop();
     };
 
     function drawGame() {
@@ -195,33 +175,20 @@ let gameOver = false;
       ctx.font = '24px Arial';
       ctx.fillText(`Score: ${score}`, 20, 40);
 
-      // Dibujar corazones en la esquina superior derecha
-const heartSize = 30;
-for (let i = 0; i < 5; i++) {
-  const img = i < lives ? heartFull : heartEmpty;
-  ctx.drawImage(img, canvas.width - (i + 1) * (heartSize + 10), 10, heartSize, heartSize);
-}
-
-      const brettWidth = canvas.width * 0.1;
-      const brettHeight = brettWidth;
-
-      const gameOverImg = new Image();
-gameOverImg.src = 'gameover.png';
-
-const retryButtonImg = new Image();
-retryButtonImg.src = 'retry_btn.png';
-
-      if (isJumping) {
-        currentSprite = velocityY < 0 ? brettJump : brettFall;
-      } else if (moveLeft || moveRight) {
-        currentSprite = brettWalk;
-      } else {
-        currentSprite = brettIdle;
+      const heartSize = 30;
+      for (let i = 0; i < 5; i++) {
+        const img = i < lives ? heartFull : heartEmpty;
+        ctx.drawImage(img, canvas.width - (i + 1) * (heartSize + 10), 10, heartSize, heartSize);
       }
 
-    if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
-  ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
-}
+      const brettW = canvas.width * 0.1;
+      const brettH = brettW;
+      let currentSprite = brettIdle;
+      if (isJumping) currentSprite = velocityY < 0 ? brettJump : brettFall;
+      else if (moveLeft || moveRight) currentSprite = brettWalk;
+
+      if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0)
+        ctx.drawImage(currentSprite, brettX, brettY, brettW, brettH);
 
       if (bullActive) {
         const bullY = canvas.height - 140;
@@ -231,43 +198,44 @@ retryButtonImg.src = 'retry_btn.png';
       if (enemy.alive) {
         ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
       } else if (enemy.exploding && enemy.explosionTimer > 0) {
-        const explosionX = enemy.x + (enemy.width / 2) - 50;
-        const explosionY = enemy.y + (enemy.height / 2) - 50;
-        ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
+        ctx.drawImage(explosionImg, enemy.x, enemy.y, 100, 100);
+      }
+
+      if (gameOver) {
+        ctx.drawImage(gameOverImg, (canvas.width - 400) / 2, (canvas.height - 200) / 2, 400, 100);
+        if (showRetry) {
+          ctx.drawImage(retryBtn, (canvas.width - 200) / 2, (canvas.height - 80) / 2 + 100, 200, 80);
+        }
       }
     }
 
     function gameLoop() {
-      const speed = 5;
-      const gravity = 1.2;
-      const brettWidth = canvas.width * 0.1;
-      const brettHeight = brettWidth;
+      const speed = 5, gravity = 1.2;
+      const brettW = canvas.width * 0.1;
+      const brettH = brettW;
 
       if (moveLeft) brettX -= speed;
       if (moveRight) brettX += speed;
-      brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
+      brettX = Math.max(0, Math.min(canvas.width - brettW, brettX));
+
       velocityY += gravity;
       brettY += velocityY;
 
       let onPlatform = false;
-
       for (const p of platforms) {
-        if (p.type === 'log') {
-          if (p.triggered) {
-            p.timer++;
-            if (p.timer > 120 && p.timer <= 360) continue;
-            if (p.timer > 360) {
-              p.triggered = false;
-              p.timer = 0;
-            }
+        if (p.type === 'log' && p.triggered) {
+          p.timer++;
+          if (p.timer > 360) {
+            p.triggered = false;
+            p.timer = 0;
           }
+          if (p.timer > 120) continue;
         }
 
-        const footY = brettY + brettHeight;
-        const onTop = brettX + brettWidth > p.x && brettX < p.x + p.width && footY >= p.y && footY <= p.y + 20 && velocityY >= 0;
-
+        const onTop = brettX + brettW > p.x && brettX < p.x + p.width &&
+                      brettY + brettH >= p.y && brettY + brettH <= p.y + 20 && velocityY >= 0;
         if (onTop) {
-          brettY = p.y - brettHeight;
+          brettY = p.y - brettH;
           velocityY = 0;
           isJumping = false;
           onPlatform = true;
@@ -278,117 +246,66 @@ retryButtonImg.src = 'retry_btn.png';
         }
       }
 
-      const groundY = canvas.height - brettHeight - 20;
-      if (brettY >= groundY) {
-        brettY = groundY;
+      if (!onPlatform && brettY >= canvas.height - brettH - 20) {
+        brettY = canvas.height - brettH - 20;
         velocityY = 0;
         isJumping = false;
         onPlatform = true;
       }
-
       if (!onPlatform) isJumping = true;
 
       for (const c of coins) {
         if (!c.collected) {
-          const brettRight = brettX + brettWidth;
-          const brettBottom = brettY + brettHeight;
-          const colX = brettRight > c.x && brettX < c.x + 30;
-          const colY = brettBottom > c.y && brettY < c.y + 30;
-
+          const colX = brettX + brettW > c.x && brettX < c.x + 30;
+          const colY = brettY + brettH > c.y && brettY < c.y + 30;
           if (colX && colY) {
             c.collected = true;
-            const previousScore = score;
+            const prev = score;
             score += c.value;
-
-            const previousCharges = Math.floor(previousScore / 100);
-            const newCharges = Math.floor(score / 100);
-            const gainedCharges = newCharges - previousCharges;
-
-            if (gainedCharges > 0) {
-              bullCharges += gainedCharges;
-              console.log("Toro recargado +" + gainedCharges + " (total: " + bullCharges + ")");
-            }
+            const chargesBefore = Math.floor(prev / 100);
+            const chargesAfter = Math.floor(score / 100);
+            bullCharges += chargesAfter - chargesBefore;
           }
         }
       }
 
-      if (enemy.alive) {
-        enemy.x += enemy.speed * enemy.direction;
-        if (enemy.x + enemy.width >= canvas.width) enemy.direction = -1;
-        if (enemy.x <= 400) enemy.direction = 1;
+      if (enemy.alive && !isInvincible && !gameOver) {
+        const colX = brettX + brettW > enemy.x && brettX < enemy.x + enemy.width;
+        const colY = brettY + brettH > enemy.y && brettY < enemy.y + enemy.height;
+        if (colX && colY) {
+          lives--;
+          isInvincible = true;
+          invincibilityTimer = 120;
+          if (lives <= 0) {
+            gameOver = true;
+            setTimeout(() => showRetry = true, 2000);
+          }
+        }
       }
-
-      // Si colisiona con el enemigo y no es invencible
-if (enemy.alive && !isInvincible && !gameOver) {
-  const brettRight = brettX + brettWidth;
-  const brettBottom = brettY + brettHeight;
-  const enemyRight = enemy.x + enemy.width;
-  const enemyBottom = enemy.y + enemy.height;
-
-  const colX = brettRight > enemy.x && brettX < enemyRight;
-  const colY = brettBottom > enemy.y && brettY < enemyBottom;
-
-  if (colX && colY) {
-    lives--;
-    isInvincible = true;
-    invincibilityTimer = 120; // 2 segundos de inmunidad
-
-    if (lives <= 0) {
-    gameOver = true;
-    currentSprite = brettDown;
-    setTimeout(() => {
-        showRetry = true;
-    }, 2000);
-}
-}
 
       if (bullActive) {
         bullX += bullSpeed;
         if (enemy.alive) {
           const bullY = canvas.height - 140;
-          const bullWidth = 150;
-          const bullHeight = 100;
-
-          const bullRight = bullX + bullWidth;
-          const bullBottom = bullY + bullHeight;
-
-          const enemyRight = enemy.x + enemy.width;
-          const enemyBottom = enemy.y + enemy.height;
-
-          const colX = bullRight > enemy.x && bullX < enemyRight;
-          const colY = bullBottom > enemy.y && bullY < enemyBottom;
-
-          if (colX && colY && !enemy.exploding) {
+          const colX = bullX + 150 > enemy.x && bullX < enemy.x + enemy.width;
+          const colY = bullY + 100 > enemy.y && bullY < enemy.y + enemy.height;
+          if (colX && colY) {
             enemy.exploding = true;
             enemy.explosionTimer = 90;
             enemy.alive = false;
-            console.log("¡Enemigo destruido por el toro!");
           }
         }
       }
-
       if (bullX > canvas.width) {
         bullActive = false;
         bullX = -200;
       }
+      if (enemy.exploding && enemy.explosionTimer > 0) enemy.explosionTimer--;
 
-      if (enemy.exploding && enemy.explosionTimer > 0) {
-        enemy.explosionTimer--;
-      }
-      
       if (isInvincible) {
-  invincibilityTimer--;
-  if (invincibilityTimer <= 0) {
-    isInvincible = false;
-  }
-}
-
-if (isInvincible) {
-  invincibilityTimer--;
-  if (invincibilityTimer <= 0) {
-    isInvincible = false;
-  }
-}
+        invincibilityTimer--;
+        if (invincibilityTimer <= 0) isInvincible = false;
+      }
 
       checkInvokeButton();
       drawGame();
@@ -404,35 +321,23 @@ if (isInvincible) {
         velocityY = -18;
       }
     });
-
     window.addEventListener('keyup', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
       if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
     });
 
-      // Detectar clic en el botón de "Retry" cuando se muestra
-canvas.addEventListener('click', function(e) {
-  if (!showRetry) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  const retryButtonWidth = 200;
-  const retryButtonHeight = 80;
-  const retryButtonX = (canvas.width - retryButtonWidth) / 2;
-  const retryButtonY = (canvas.height - retryButtonHeight) / 2 + 100;
-
-  if (
-    clickX >= retryButtonX &&
-    clickX <= retryButtonX + retryButtonWidth &&
-    clickY >= retryButtonY &&
-    clickY <= retryButtonY + retryButtonHeight
-  ) {
-    location.reload(); // Reinicia el juego
-  }
-});
-
+    canvas.addEventListener('click', function(e) {
+      if (!showRetry) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const retryW = 200, retryH = 80;
+      const retryX = (canvas.width - retryW) / 2;
+      const retryY = (canvas.height - retryH) / 2 + 100;
+      if (clickX >= retryX && clickX <= retryX + retryW && clickY >= retryY && clickY <= retryY + retryH) {
+        location.reload();
+      }
+    });
   </script>
 </body>
 </html>
