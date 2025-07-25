@@ -45,6 +45,7 @@
     const brettJump = new Image(); brettJump.src = 'brett_jump.png';
     const brettFall = new Image(); brettFall.src = 'brett_fall.png';
     const brettDown = new Image(); brettDown.src = 'brett_down.png';
+    const gameOverImg = new Image(); gameOverImg.src = 'gameover.png';
     const bullFire = new Image(); bullFire.src = 'bull_fire.png';
 
     const enemy = {
@@ -202,8 +203,15 @@ for (let i = 0; i < 5; i++) {
         currentSprite = brettIdle;
       }
 
-   if (gameOver) {
+  if (gameOver) {
   ctx.drawImage(brettDown, brettX, brettY, brettWidth, brettHeight);
+
+  // Mostrar imagen de Game Over centrada
+  const goWidth = 300;
+  const goHeight = 100;
+  const goX = (canvas.width - goWidth) / 2;
+  const goY = (canvas.height - goHeight) / 2;
+  ctx.drawImage(gameOverImg, goX, goY, goWidth, goHeight);
 } else if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
   ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
 }
@@ -373,7 +381,7 @@ if (enemy.alive && !isInvincible && !gameOver) {
     }
 
     window.addEventListener('keydown', (e) => {
-      if (!gameStarted) return;
+      if (!gameStarted || gameOver) return;
       if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
       if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
       if ((e.key === ' ' || e.key === 'w') && !isJumping) {
