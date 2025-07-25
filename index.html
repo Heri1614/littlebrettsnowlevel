@@ -33,6 +33,7 @@
   <img id="startButton" src="btn_start.png" alt="Start" disabled>
   <canvas id="gameCanvas"></canvas>
   <img id="invokeButton" src="invoke_btn.png" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 70px; cursor: pointer; z-index: 20;">
+  <img id="retryButton" src="retry_btn.png" style="display: none; position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); width: 120px; cursor: pointer; z-index: 15;">
 
   <script>
     const startButton = document.getElementById('startButton');
@@ -46,6 +47,7 @@
     const brettFall = new Image(); brettFall.src = 'brett_fall.png';
     const brettDown = new Image(); brettDown.src = 'brett_down.png';
     const gameOverImg = new Image(); gameOverImg.src = 'gameover.png';
+    const retryImg = new Image(); retryImg.src = 'retry_btn.png';
     const bullFire = new Image(); bullFire.src = 'bull_fire.png';
 
     const enemy = {
@@ -150,6 +152,51 @@ let lives = 5;
     let isInvincible = false;
 let invincibilityTimer = 0;
 let gameOver = false;
+
+    const retryButton = document.getElementById('retryButton');
+let retryShown = false;
+let retryTimer = 0;
+
+    retryButton.onclick = () => {
+  // Reiniciar variables esenciales
+  brettX = 0;
+  velocityY = 0;
+  isJumping = false;
+  movingLeft = false;
+  movingRight = false;
+  score = 0;
+  lives = 5;
+  isInvincible = false;
+  invincibilityTimer = 0;
+  gameOver = false;
+  retryShown = false;
+  retryTimer = 0;
+  retryButton.style.display = 'none';
+
+  // Reiniciar enemigo
+  enemy = {
+    x: 400,
+    y: canvas.height - 140,
+    width: 60,
+    height: 60,
+    alive: true,
+    movingRight: true
+  };
+
+  // Reiniciar plataformas y monedas
+  for (const p of plats) p.collected = false;
+  for (const g of golds) {
+    g.visible = true;
+  }
+
+  // Reiniciar toro
+  bullActive = false;
+  bullX = -200;
+  bullXTarget = 0;
+
+  // Volver a empezar el bucle del juego
+  gameLoop();
+};
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -331,6 +378,15 @@ if (enemy.alive && !isInvincible && !gameOver) {
       console.log("¡GAME OVER!");
     }
   }
+
+  if (gameOver && !retryShown) {
+  retryTimer++;
+  if (retryTimer >= 60) { // 60 frames ≈ 1 segundo
+    retryButton.style.display = 'block';
+    retryShown = true;
+  }
+}
+
 }
 
       if (bullActive) {
