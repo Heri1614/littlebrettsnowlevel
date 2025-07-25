@@ -1,223 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>LittleBrett Game</title>
   <style>
-    canvas { background: #000; display: block; margin: auto; }
-    body { margin: 0; overflow: hidden; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background-color: black;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 25vw;
+      max-width: 300px;
+      z-index: 10;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="800" height="400"></canvas>
 
-<script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+  <img id="startButton" src="btn_start.png" alt="Start" disabled>
+  <canvas id="gameCanvas"></canvas>
+  <img id="invokeButton" src="invoke_btn.png" style="display: none; position: absolute; bottom: 20px; left: 20px; width: 70px; cursor: pointer; z-index: 20;">
 
-const gravity = 0.5;
-let isJumping = false;
-let isFalling = false;
-let isGameOver = false;
-let showGameOverScreen = false;
+  <script>
+    const startButton = document.getElementById('startButton');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-const player = {
-  x: 50,
-  y: 300,
-  width: 50,
-  height: 50,
-  color: "blue",
-  vy: 0,
-  jumpForce: -12,
-  grounded: false,
-  invincible: false,
-  invincibilityTimer: 0,
-  health: 5
-};
+    const bgForest = new Image(); bgForest.src = 'bg_forest.png';
+    const brettIdle = new Image(); brettIdle.src = 'brett_idle.png';
+    const brettWalk = new Image(); brettWalk.src = 'brett_walk1.png';
+    const brettJump = new Image(); brettJump.src = 'brett_jump.png';
+    const brettFall = new Image(); brettFall.src = 'brett_fall.png';
+    const bullFire = new Image(); bullFire.src = 'bull_fire.png';
 
-const enemy = {
-  x: 400,
-  y: 350,
-  width: 40,
-  height: 40,
-  speed: 2,
-  direction: 1,
-  alive: true
-};
+    const enemy = {
+      x: 400, y: 460, width: 50, height: 60, speed: 2.5, direction: 1,
+      alive: true, exploding: false, explosionTimer: 0,
+      img: new Image()
+    };
+    enemy.img.src = 'enemy1.png';
 
-const retryButton = {
-  x: canvas.width / 2 - 75,
-  y: canvas.height / 2 + 50,
-  width: 150,
-  height: 50,
-  image: new Image()
-};
-retryButton.image.src = "retry_btn.png";
+    const explosionImg = new Image();
+    explosionImg.src = 'explosion.png';
+    explosionImg.onload = () => { startButton.disabled = false; };
 
-const gameOverImage = new Image();
-gameOverImage.src = "gameover.png";
+    // Corazones (vida)
+const heartFull = new Image(); heartFull.src = 'heart_full.png';
+const heartEmpty = new Image(); heartEmpty.src = 'heart_empty.png';
+let lives = 5;
 
-const heartFull = new Image();
-heartFull.src = "heart_full.png";
+    const platforms = [];
+    const platformCount = 50;
+    let x = 200, y = 400, direction = -1;
 
-const heartEmpty = new Image();
-heartEmpty.src = "heart_empty.png";
+    for (let i = 0; i < platformCount; i++) {
+      const isLog = i % 5 === 0;
+      platforms.push({
+        x: x,
+        y: y,
+        width: 120,
+        height: 20,
+        img: isLog ? "log.png" : "Platform_small.png",
+        type: isLog ? "log" : "normal",
+        triggered: false,
+        timer: 0
+      });
 
-const brettDown = new Image();
-brettDown.src = "brett_down.png";
+      x += 130;
+      y += direction * 40;
+      if (i % 4 === 0) direction *= -1;
+      if (y < 200) y = 200;
+      if (y > 450) y = 450;
+    }
 
-const platforms = [];
-for (let i = 0; i < 50; i++) {
-  const x = i * 100 + 100;
-  const y = 250 + 50 * Math.sin(i * 0.5);
-  platforms.push({ x, y, width: 80, height: 10 });
+    const coins = [];
+    const types = ['coin', 'eth', 'btc'];
+    for (let i = 0; i < platforms.length; i++) {
+      const p = platforms[i];
+      const type = types[i % types.length];
+      const value = type === 'btc' ? 50 : type === 'eth' ? 30 : 20;
+
+      coins.push({
+        x: p.x + (p.width / 2) - 15,
+        y: p.y - 30,
+        type: type,
+        value: value,
+        collected: false
+      });
+    }
+
+    const coinImages = {
+      coin: new Image(),
+      eth: new Image(),
+      btc: new Image()
+    };
+    coinImages.coin.src = 'coin.png';
+    coinImages.eth.src = 'eth.png';
+    coinImages.btc.src = 'btc.png';
+
+    let score = 0;
+    let bullActive = false;
+    let bullX = -200;
+    let bullSpeed = 15;
+    let bullCharges = 0;
+    const invokeButton = document.getElementById('invokeButton');
+
+    function checkInvokeButton() {
+      invokeButton.style.display = bullCharges > 0 ? 'block' : 'none';
+    }
+
+    invokeButton.onclick = () => {
+      if (!bullActive && bullCharges > 0) {
+        bullActive = true;
+        bullX = -200;
+        bullCharges--;
+        console.log("Toro invocado. Cargas restantes: " + bullCharges);
+      }
+    };
+
+    const platformImages = {};
+    for (const p of platforms) {
+      if (!platformImages[p.img]) {
+        platformImages[p.img] = new Image();
+        platformImages[p.img].src = p.img;
+      }
+    }
+
+    let currentSprite = brettIdle;
+    let brettX = 400, brettY = 380, velocityY = 0;
+    let isJumping = false, isFalling = false;
+    let moveLeft = false, moveRight = false;
+    let gameStarted = false;
+
+    let isInvincible = false;
+let invincibilityTimer = 0;
+let gameOver = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (gameStarted) drawGame();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    startButton.onclick = () => {
+      gameStarted = true;
+      startButton.style.display = 'none';
+      resizeCanvas();
+      gameLoop();
+    };
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgForest, 0, 0, canvas.width, canvas.height);
+
+      for (const p of platforms) {
+        if (p.type === 'log' && p.triggered && p.timer > 120) continue;
+        ctx.drawImage(platformImages[p.img], p.x, p.y, p.width, p.height);
+      }
+
+      for (const c of coins) {
+        if (!c.collected) {
+          ctx.drawImage(coinImages[c.type], c.x, c.y, 30, 30);
+        }
+      }
+
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.fillText(`Score: ${score}`, 20, 40);
+
+      // Dibujar corazones en la esquina superior derecha
+const heartSize = 30;
+for (let i = 0; i < 5; i++) {
+  const img = i < lives ? heartFull : heartEmpty;
+  ctx.drawImage(img, canvas.width - (i + 1) * (heartSize + 10), 10, heartSize, heartSize);
 }
 
-const keys = {};
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
+      const brettWidth = canvas.width * 0.1;
+      const brettHeight = brettWidth;
 
-canvas.addEventListener("click", function (e) {
-  if (!isGameOver) return;
+      if (isJumping) {
+        currentSprite = velocityY < 0 ? brettJump : brettFall;
+      } else if (moveLeft || moveRight) {
+        currentSprite = brettWalk;
+      } else {
+        currentSprite = brettIdle;
+      }
 
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  if (
-    clickX >= retryButton.x &&
-    clickX <= retryButton.x + retryButton.width &&
-    clickY >= retryButton.y &&
-    clickY <= retryButton.y + retryButton.height
-  ) {
-    location.reload();
-  }
-});
-
-function checkCollision(a, b) {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
+    if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
+  ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
 }
 
-function drawPlayer() {
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x, player.y, player.width, player.height);
-}
+      if (bullActive) {
+        const bullY = canvas.height - 140;
+        ctx.drawImage(bullFire, bullX, bullY, 150, 100);
+      }
 
-function drawEnemy() {
-  if (enemy.alive) {
-    ctx.fillStyle = "red";
-    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-  }
-}
+      if (enemy.alive) {
+        ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.width, enemy.height);
+      } else if (enemy.exploding && enemy.explosionTimer > 0) {
+        const explosionX = enemy.x + (enemy.width / 2) - 50;
+        const explosionY = enemy.y + (enemy.height / 2) - 50;
+        ctx.drawImage(explosionImg, explosionX, explosionY, 100, 100);
+      }
+    }
 
-function drawPlatforms() {
-  ctx.fillStyle = "green";
-  for (let p of platforms) {
-    ctx.fillRect(p.x, p.y, p.width, p.height);
-  }
-}
+    function gameLoop() {
+      const speed = 5;
+      const gravity = 1.2;
+      const brettWidth = canvas.width * 0.1;
+      const brettHeight = brettWidth;
 
-function drawHearts() {
-  const heartSize = 32;
-  for (let i = 0; i < 5; i++) {
-    const img = i < player.health ? heartFull : heartEmpty;
-    ctx.drawImage(img, canvas.width - (i + 1) * (heartSize + 5) - 10, 10, heartSize, heartSize);
-  }
-}
+      if (moveLeft) brettX -= speed;
+      if (moveRight) brettX += speed;
+      brettX = Math.max(0, Math.min(canvas.width - brettWidth, brettX));
+      velocityY += gravity;
+      brettY += velocityY;
 
-function handleDamage() {
-  if (player.invincible || !enemy.alive) return;
+      let onPlatform = false;
 
-  if (checkCollision(player, enemy)) {
-    player.health -= 1;
-    player.invincible = true;
-    player.invincibilityTimer = 60;
+      for (const p of platforms) {
+        if (p.type === 'log') {
+          if (p.triggered) {
+            p.timer++;
+            if (p.timer > 120 && p.timer <= 360) continue;
+            if (p.timer > 360) {
+              p.triggered = false;
+              p.timer = 0;
+            }
+          }
+        }
 
-    if (player.health <= 0) {
-      isGameOver = true;
-      setTimeout(() => {
-        showGameOverScreen = true;
-      }, 2000);
+        const footY = brettY + brettHeight;
+        const onTop = brettX + brettWidth > p.x && brettX < p.x + p.width && footY >= p.y && footY <= p.y + 20 && velocityY >= 0;
+
+        if (onTop) {
+          brettY = p.y - brettHeight;
+          velocityY = 0;
+          isJumping = false;
+          onPlatform = true;
+          if (p.type === 'log' && !p.triggered) {
+            p.triggered = true;
+            p.timer = 0;
+          }
+        }
+      }
+
+      const groundY = canvas.height - brettHeight - 20;
+      if (brettY >= groundY) {
+        brettY = groundY;
+        velocityY = 0;
+        isJumping = false;
+        onPlatform = true;
+      }
+
+      if (!onPlatform) isJumping = true;
+
+      for (const c of coins) {
+        if (!c.collected) {
+          const brettRight = brettX + brettWidth;
+          const brettBottom = brettY + brettHeight;
+          const colX = brettRight > c.x && brettX < c.x + 30;
+          const colY = brettBottom > c.y && brettY < c.y + 30;
+
+          if (colX && colY) {
+            c.collected = true;
+            const previousScore = score;
+            score += c.value;
+
+            const previousCharges = Math.floor(previousScore / 100);
+            const newCharges = Math.floor(score / 100);
+            const gainedCharges = newCharges - previousCharges;
+
+            if (gainedCharges > 0) {
+              bullCharges += gainedCharges;
+              console.log("Toro recargado +" + gainedCharges + " (total: " + bullCharges + ")");
+            }
+          }
+        }
+      }
+
+      if (enemy.alive) {
+        enemy.x += enemy.speed * enemy.direction;
+        if (enemy.x + enemy.width >= canvas.width) enemy.direction = -1;
+        if (enemy.x <= 400) enemy.direction = 1;
+      }
+
+      // Si colisiona con el enemigo y no es invencible
+if (enemy.alive && !isInvincible && !gameOver) {
+  const brettRight = brettX + brettWidth;
+  const brettBottom = brettY + brettHeight;
+  const enemyRight = enemy.x + enemy.width;
+  const enemyBottom = enemy.y + enemy.height;
+
+  const colX = brettRight > enemy.x && brettX < enemyRight;
+  const colY = brettBottom > enemy.y && brettY < enemyBottom;
+
+  if (colX && colY) {
+    lives--;
+    isInvincible = true;
+    invincibilityTimer = 120; // 2 segundos de inmunidad
+
+    if (lives <= 0) {
+      gameOver = true;
+      console.log("¡GAME OVER!");
     }
   }
 }
 
-function updatePlayer() {
-  if (keys["ArrowLeft"]) player.x -= 5;
-  if (keys["ArrowRight"]) player.x += 5;
+      if (bullActive) {
+        bullX += bullSpeed;
+        if (enemy.alive) {
+          const bullY = canvas.height - 140;
+          const bullWidth = 150;
+          const bullHeight = 100;
 
-  if (keys[" "] && player.grounded) {
-    player.vy = player.jumpForce;
-    player.grounded = false;
-  }
+          const bullRight = bullX + bullWidth;
+          const bullBottom = bullY + bullHeight;
 
-  player.vy += gravity;
-  player.y += player.vy;
+          const enemyRight = enemy.x + enemy.width;
+          const enemyBottom = enemy.y + enemy.height;
 
-  player.grounded = false;
-  for (let p of platforms) {
-    if (
-      player.y + player.height >= p.y &&
-      player.y + player.height <= p.y + 10 &&
-      player.x + player.width > p.x &&
-      player.x < p.x + p.width
-    ) {
-      player.y = p.y - player.height;
-      player.vy = 0;
-      player.grounded = true;
-    }
-  }
+          const colX = bullRight > enemy.x && bullX < enemyRight;
+          const colY = bullBottom > enemy.y && bullY < enemyBottom;
 
-  if (player.invincible) {
-    player.invincibilityTimer--;
-    if (player.invincibilityTimer <= 0) {
-      player.invincible = false;
-    }
+          if (colX && colY && !enemy.exploding) {
+            enemy.exploding = true;
+            enemy.explosionTimer = 90;
+            enemy.alive = false;
+            console.log("¡Enemigo destruido por el toro!");
+          }
+        }
+      }
+
+      if (bullX > canvas.width) {
+        bullActive = false;
+        bullX = -200;
+      }
+
+      if (enemy.exploding && enemy.explosionTimer > 0) {
+        enemy.explosionTimer--;
+      }
+      
+      if (isInvincible) {
+  invincibilityTimer--;
+  if (invincibilityTimer <= 0) {
+    isInvincible = false;
   }
 }
 
-function updateEnemy() {
-  if (!enemy.alive) return;
 
-  enemy.x += enemy.speed * enemy.direction;
-
-  const minX = canvas.width * 0.2;
-  const maxX = canvas.width * 0.8 - enemy.width;
-
-  if (enemy.x <= minX) enemy.direction = 1;
-  if (enemy.x >= maxX) enemy.direction = -1;
-}
-
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (!isGameOver) {
-    updatePlayer();
-    updateEnemy();
-    handleDamage();
-    drawPlatforms();
-    drawEnemy();
-    drawPlayer();
-    drawHearts();
-  } else {
-    if (!showGameOverScreen) {
-      ctx.drawImage(brettDown, player.x, player.y, player.width, player.height);
-    } else {
-      ctx.drawImage(gameOverImage, canvas.width / 2 - 150, canvas.height / 2 - 100, 300, 100);
-      ctx.drawImage(retryButton.image, retryButton.x, retryButton.y, retryButton.width, retryButton.height);
+      checkInvokeButton();
+      drawGame();
+      requestAnimationFrame(gameLoop);
     }
-  }
 
-  requestAnimationFrame(gameLoop);
-}
+    window.addEventListener('keydown', (e) => {
+      if (!gameStarted) return;
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = true;
+      if ((e.key === ' ' || e.key === 'w') && !isJumping) {
+        isJumping = true;
+        velocityY = -18;
+      }
+    });
 
-gameLoop();
-</script>
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight = false;
+    });
+
+  </script>
 </body>
 </html>
