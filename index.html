@@ -378,15 +378,6 @@ if (enemy.alive && !isInvincible && !gameOver) {
       console.log("¡GAME OVER!");
     }
   }
-
-  if (gameOver && !retryShown) {
-  retryTimer++;
-  if (retryTimer >= 60) { // 60 frames ≈ 1 segundo
-    retryButton.style.display = 'block';
-    retryShown = true;
-  }
-}
-
 }
 
       if (bullActive) {
@@ -429,7 +420,14 @@ if (enemy.alive && !isInvincible && !gameOver) {
     isInvincible = false;
   }
 }
-
+      
+  if (gameOver && !retryShown) {
+  retryTimer++;
+  if (retryTimer >= 60) { // 60 frames ≈ 1 segundo
+    retryButton.style.display = 'block';
+    retryShown = true;
+  }
+}
 
       checkInvokeButton();
       drawGame();
