@@ -44,6 +44,7 @@
     const brettWalk = new Image(); brettWalk.src = 'brett_walk1.png';
     const brettJump = new Image(); brettJump.src = 'brett_jump.png';
     const brettFall = new Image(); brettFall.src = 'brett_fall.png';
+    const brettDown = new Image(); brettDown.src = 'brett_down.png';
     const bullFire = new Image(); bullFire.src = 'bull_fire.png';
 
     const enemy = {
@@ -201,7 +202,9 @@ for (let i = 0; i < 5; i++) {
         currentSprite = brettIdle;
       }
 
-    if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
+   if (gameOver) {
+  ctx.drawImage(brettDown, brettX, brettY, brettWidth, brettHeight);
+} else if (!isInvincible || Math.floor(invincibilityTimer / 10) % 2 === 0) {
   ctx.drawImage(currentSprite, brettX, brettY, brettWidth, brettHeight);
 }
 
